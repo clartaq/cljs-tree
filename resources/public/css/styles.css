@@ -1,0 +1,368 @@
+/*
+** I'm using Muli for headlines since it is the closest thing I can find to
+** Century Gothic, which is very nice but rather expensive. Since Muli is
+** only used for headlines, we only need bold and bold-italic.
+*/
+
+/* latin-ext */
+@font-face {
+    font-family: 'Muli';
+    font-style: italic;
+    font-weight: 700;
+    src: local('Muli Bold Italic'), local('Muli-BoldItalic'), url(https://fonts.gstatic.com/s/muli/v11/7Au9p_0qiz-afTf-lCfGw2QIElsO02Ex.woff2) format('woff2');
+    unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* latin */
+@font-face {
+    font-family: 'Muli';
+    font-style: italic;
+    font-weight: 700;
+    src: local('Muli Bold Italic'), local('Muli-BoldItalic'), url(https://fonts.gstatic.com/s/muli/v11/7Au9p_0qiz-afTf-lCfGzWQIElsO0w.woff2) format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* latin-ext */
+@font-face {
+    font-family: 'Muli';
+    font-style: normal;
+    font-weight: 700;
+    src: local('Muli Bold'), local('Muli-Bold'), url(https://fonts.gstatic.com/s/muli/v11/7Au_p_0qiz-adYnjOCv2z24PMFk-0g.woff2) format('woff2');
+    unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* latin */
+@font-face {
+    font-family: 'Muli';
+    font-style: normal;
+    font-weight: 700;
+    src: local('Muli Bold'), local('Muli-Bold'), url(https://fonts.gstatic.com/s/muli/v11/7Au_p_0qiz-adYnjOCX2z24PMFk.woff2) format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    height: 100vh;
+}
+
+:root {
+    /* Some colors. */
+    --heading-background-color: transparent;
+    --heading-color: #575757;
+    --body-background-color: #fcfcfc;
+    --body-color: #111111;
+    --normal-link-color: #2b24ff;
+    /* Color used for Rules, vertical separators, etc. */
+    --rule-color: #ccc;
+    --active-border-color: #9daca9;
+    --page-header-background-color: #575757;
+    --brand-title-color: #cfe7ed;
+    --brand-sub-title-color: #cfe7ed;
+    --brand-link-color: #a0e0ff;
+    --brand-link-visited-color: #cfe7ed;
+    --hmenu-background-color: #575757;
+    --menu-item-color: #cfe7ed;
+    --menu-item-subnav-background: #575757;
+    --search-text-color: #575757;
+    --search-text-box-shadow-color: #fff;
+    --search-submit-color: #a0e0ff;
+    --search-submit-background-color: #fafafa;
+    --search-submit-box-shadow-color: #fff;
+    --search-submit-hover-color: #575757;
+    --search-submit-hover-background-color: #eff1f1;
+    --search-submit-focus-color: #e5ecf4;
+    --search-submit-focus-border-color: #0036;
+    --search-submit-focus-box-shadow-color: #6fb5f1;
+    --search-submit-active-color: #e5ecf4;
+    --search-submit-active-background-color: #d2d6d6;
+    --search-submit-disabled-color: #e5ecf4;
+    --content-link-color: #a0e0ff;
+    --content-link-visited-color: #5689a9;
+    --content-link-active-color: #a0e0ff;
+    --form-title-color: #575757;
+    --form-label-color: #575757;
+    --form-label-background: transparent;
+    --form-button-background-color: #e5e9e8;
+    --form-button-box-shadow-color: #fff;
+    --form-button-color: #454545;
+    --form-button-text-shadow-color: #fff;
+    --form-button-hover-color: #eff1f1;
+    --form-button-focus-border-color: #0036ff;
+    --form-button-focus-box-shadow-color: #6fb5f1;
+    --form-button-active-background-color: #d2d6d6;
+    --form-button-active-box-shadow-color: #d2d6d6;
+    --required-color: red;
+    --table-color: #333333;
+    --table-border-color: #999999;
+    --table-header-background-color: #cfe7ed;
+    --table-header-border-color: #a9c6c9;
+    --table-body-table-row-nth-odd-color: #fafafa;
+    --table-row-background-color: #f6f8fa;
+    --table-node-border-color: #a9c6c9;
+    --table-row-hover-background-color: #f6f8fa;
+    --footer-color: lightgrey;
+    --footer-background-color: #575757;
+    --blockquote-color: #777777;
+    --menu-item-link-color: #a0e0ff;
+    /* For in-line code segments of text. */
+    --code-background-color: #f0f0f0;
+    /* Color and transparency for background overlay used during modal
+       dialogs. Same color as --code-background-color (but decimal
+       rgb values) and slightly transparent.
+     */
+    --overlay-color-and-transparency: rgba(240, 240, 240, 0.9);
+    /* For code blocks and pre-formatted blocks. */
+    --code-highlight-color: #f0f0f0;
+    /* For the border around code. */
+    --code-border-color: #575757;
+    /* For disabled editor button bar icons.*/
+    --disabled-button-bar-icon-text-color: #acafaf;
+
+    /* Fonts. */
+    --headline-font-family: "Century Gothic", Muli, "Segoe UI", Arial, sans-serif;
+    --body-font-family: Palatino, "Palatino Linotype", "Palatino LT STD", "Book Antiqua", Georgia, serif;
+
+}
+
+/* Some typography. */
+
+h1, h2, h3, h4, h5, h6 {
+    background-color: var(--heading-background-color);
+    color: var(--heading-color);
+    font-family: var(--headline-font-family);
+    margin-top: 1.25rem;
+    margin-bottom: 0.8rem;
+    line-height: 1.3rem;
+}
+
+h1 {
+    font-size: 2.2rem;
+    line-height: 2.5rem;
+}
+
+h2 {
+    font-size: 1.728rem;
+    padding-bottom: 0.3rem;
+}
+
+h3 {
+    font-size: 1.44rem;
+    line-height: 1.6rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--rule-color);
+}
+
+h4 {
+    font-size: 1.2rem;
+}
+
+h5 {
+    color: black;
+    font-size: 0.875rem;
+}
+
+h6 {
+    font-size: 0.85rem;
+}
+
+small {
+    font-size: 0.833rem;
+}
+
+body {
+    font-family: var(--body-font-family);
+    font-weight: normal;
+    color: var(--body-color);
+    background-color: var(--body-background-color);
+    font-size: 1em;
+    line-height: 1.5em;
+    margin: 0;
+    overflow: hidden;
+}
+
+p {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+/* All of the visible content is held within a page div. */
+
+.page {
+    display: flex;
+    height: 100vh;
+    flex-direction: column;
+    box-sizing: border-box;
+    overflow: hidden;
+    padding: 1rem;
+}
+
+.title-div {
+    flex: 0 0 auto;
+    padding: 5px;
+    margin: 5px;
+}
+
+/* Styles used by all demos. */
+
+.tree-control--container {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.tree-control {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    width: 70ch;
+    max-width: 70ch;
+    margin: 5px;
+    margin-right: 5rem;
+    padding: 1rem;
+    border: 1px black solid;
+    border-radius: 4px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.tree-control--description {
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px var(--rule-color) solid;
+    box-sizing: border-box;
+}
+
+.tree-control--content {
+    flex: 1 1 auto;
+    overflow: auto;
+    box-sizing: border-box;
+}
+
+.tree-control--button-area {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding-top: 1rem;
+    margin-top: 1rem;
+    border-top: 1px var(--rule-color) solid;
+    box-sizing: border-box;
+}
+
+.tree-control--button {
+    background-color: var(--form-button-background-color);
+    border: 1px solid var(--active-border-color);
+    border-radius: 4px;
+    box-shadow: inset 0 1px var(--form-button-box-shadow-color);
+    box-sizing: border-box;
+    color: var(--form-button-color);
+    cursor: default;
+    display: inline-block;
+    font-family: var(--body-font-family);
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 1.688rem;
+    overflow: hidden;
+    padding: 0.2rem 0.875rem 0 0.875rem;
+    position: relative;
+    text-decoration: none;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px var(--form-button-text-shadow-color);
+    vertical-align: center;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.tree-control--button:hover {
+    background-color: var(--form-button-hover-color);
+}
+
+.tree-control--button:focus {
+    border: 1px solid var(--active-border-color);
+    box-shadow: inset 0 1px rgba(255, 255, 255, 0.36), 0 0 0 2px var(--form-button-focus-box-shadow-color);
+    outline: 0;
+}
+
+.tree-control--button:active {
+    border: 1px solid var(--active-border-color);
+    background-color: var(--form-button-active-background-color);
+    box-shadow: inset 0 1px var(--form-button-active-box-shadow-color);
+}
+
+.tree-control--button:disabled {
+    opacity: 0.3;
+    cursor: default;
+    pointer-events: none;
+}
+
+/* Styles for the tree control list. */
+
+ul.tree-control--list, ul.tree-control--list ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+ul.tree-control--list ul {
+    margin-left: 1rem;
+}
+
+.tree-control--expansion-span {
+    font-size: 70%;
+    cursor: default;
+
+    padding-right: 0.5rem;
+    background-color: #d4ffd8
+}
+
+.tree-control--topic-div {
+    /*display: flex;*/
+    /*flex-direction: row;*/
+    margin-top: 0.1em;
+    margin-bottom: 0.1em;
+    background-color: #cfe7ed;
+    border: 1px solid black;
+}
+
+.tree-control--topic {
+    /*flex: auto;*/
+    background-color: #fff4e8
+}
+
+.tree-control--topic:hover {
+    background-color: var(--form-button-hover-color);
+}
+
+.tree-control--topic-label {
+    width: 95%;
+}
+
+.tree-control--editor {
+    font-family: var(--body-font-family);
+    font-weight: normal;
+    color: var(--body-color);
+    background-color: var(--body-background-color);
+    font-size: 1em;
+
+    width: 55ch;
+
+    border: none;
+    outline: none;
+}
+
+/*
+** Take away the blue border around the editor when it is being
+** typed in.
+ */
+.tree-control--editor:focus {
+    outline: none;
+    border: none;
+}
