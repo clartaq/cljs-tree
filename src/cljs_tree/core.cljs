@@ -203,7 +203,6 @@
                               :repeating?         (.-repeat evt)
                               :shift-key          (.-shiftKey evt)
                               :which              (.-which evt)})]
-    ;(println event-data-map)
     event-data-map))
 
 ;;------------------------------------------------------------------------------
@@ -378,23 +377,23 @@
   "Insert the given topic at the specified index in the parents vector of
   children. No data is deleted."
   [parent-topic-map-ratom index topic-to-add]
-  (println "add-child!: parent-topic-map-ratom: " parent-topic-map-ratom
-           "\nindex: " index ", topic-to-add: " topic-to-add)
+  ;(println "add-child!: parent-topic-map-ratom: " parent-topic-map-ratom
+  ;         "\nindex: " index ", topic-to-add: " topic-to-add)
   (let [child-topic-vector (:children @parent-topic-map-ratom)]
     (cond
       (nil? (:children @parent-topic-map-ratom))
       (do
-        (println "trying to insert into nil child map")
+        ;(println "trying to insert into nil child map")
         (swap! parent-topic-map-ratom assoc :children [topic-to-add]))
 
       (or (empty? child-topic-vector) (>= index (count child-topic-vector)))
       (let [new-child (conj child-topic-vector topic-to-add)]
-        (println "inserting into empty or short child map")
+        ;(println "inserting into empty or short child map")
         (swap! parent-topic-map-ratom assoc :children new-child))
 
       (and (>= index 0) (<= index (count child-topic-vector)))
       (let [new-child-vector (insert-at child-topic-vector index topic-to-add)]
-        (println "inserting somewhere inside the topic vector")
+        ;(println "inserting somewhere inside the topic vector")
         (swap! parent-topic-map-ratom assoc :children new-child-vector))
 
       :default (println "Aack! add-child!: Fell through to default case."))))
@@ -407,32 +406,6 @@
   (let [path-and-index (tr-id->nav-vector-and-index id-of-desired-node)]
     (add-child! (r/cursor root-ratom (:path-to-parent path-and-index))
                 (:child-index path-and-index) topic-to-graft)))
-
-;; These functions represent another way of adding child nodes.
-;
-;(defn insert-child!
-;  [root-ratom ele-id new-topic index]
-;  (println "insert-child!: ele-id: " ele-id ", new-topic: " new-topic ", index: " index)
-;  (let [existing-child-vector (tr-id->tree-path-nav-vector ele-id)
-;        ;(get-in @root-ratom (tr-id->tree-path-nav-vector ele-id))
-;        _ (println "existing-child-vector: " existing-child-vector)
-;        new-nav-vector (append-element-to-vector existing-child-vector :children)
-;        _ (println "new-nav-vector:: " new-nav-vector)
-;        retrieved-child-vector (get-in @root-ratom new-nav-vector)
-;        _ (println "retrieved-child-vector: " retrieved-child-vector)
-;        new-child-vector (insert-at retrieved-child-vector index new-topic)
-;        _ (println "new-child-vector: " new-child-vector)
-;
-;        ]
-;    (swap! root-ratom assoc-in new-nav-vector new-child-vector)
-;    (println (get-in @root-ratom new-nav-vector))
-;    ;  (println "new-child-vector: " new-child-vector)
-;    ;  (reset! ele-id new-child-vector))
-;    ))
-;
-;(defn insert-child-after!
-;  [root-ratom ele-id new-topic]
-;  (insert-child! root-ratom ele-id new-topic 0))
 
 (defn move-branch!
   "Move an existing branch to a new location."
@@ -473,7 +446,6 @@
 
 (defn move-rocks-again!
   [root-ratom]
-  (println "move-rocks-again!")
   (move-branch! root-ratom mov-rock-dest-id fnl-rock-dest-id))
 
 (defn remove-rocks!
@@ -546,40 +518,12 @@
              :default [:span invisible-chevron (str \u25BA \space)])]
     es))
 
-;(defn insert-sibling!
-;  [subtree-ratom index new-topic]
-;  (println "insert-sibling!: index: " index ", new-topic: " new-topic)
-;  (when (vector? @subtree-ratom)
-;    (let [existing-topic-vector @subtree-ratom
-;          new-child-vector (insert-at existing-topic-vector index new-topic)]
-;      (println "inserting somewhere inside the existing topic vector")
-;      (reset! subtree-ratom new-child-vector))))
-
-;(defn insert-empty-sibling-after!
-;  [root-ratom topic-ratom span-id]
-;  (println "insert-empty-sibling-after!: span-id: " span-id ", topic-ratom: " topic-ratom)
-;  (let [empty-topic {:topic "Empty Topic Here"}
-;        path-and-index (tr-id->nav-vector-and-index span-id)
-;        _ (println "path-and-index: " path-and-index)
-;        parent-path (:path-to-parent path-and-index)
-;        _ (println "parent-path: " parent-path)
-;        parent-path-ratom (if (empty? parent-path)
-;                            root-ratom
-;                            (r/cursor root-ratom parent-path))
-;        _ (println "parent-path-ratom: " parent-path-ratom)
-;        index (inc (:child-index path-and-index))]
-;    (println "index: " index)
-;    (insert-sibling! parent-path-ratom index empty-topic)))
-
 (defn handle-enter-key-down
   [root-ratom topic-ratom span-id]
-  (println "Saw 'Enter' key down.")
-  (println "    topic-ratom: " topic-ratom)
-  (println "    @topic-ratom: " @topic-ratom)
-  (println "    span-id:     " span-id)
-  (println "    (tr-id->nav-vector-for-parent span-id): " (tr-id->nav-vector-for-parent span-id))
-  (println "    (get-topic root-ratom span-id): " (get-topic root-ratom span-id))
-  (println "    (:children (get-topic root-ratom span-id)): " (:children (get-topic root-ratom span-id)))
+  ;(println "Saw 'Enter' key down.")
+  ;(println "    topic-ratom: " topic-ratom)
+  ;(println "    @topic-ratom: " @topic-ratom)
+  ;(println "    span-id:     " span-id)
   ; If the topic span has children, add a new child in the zero-position
   ; Else add a new sibling below the current topic
   (let [id-of-new-child (if (get-topic-children root-ratom span-id)
@@ -587,8 +531,8 @@
                           (increment-leaf-index span-id))
         id-of-new-editor (change-tr-id-type id-of-new-child "editor")
         id-of-new-label (change-tr-id-type id-of-new-child "label")]
-    (println "id-of-new-editor: " id-of-new-editor)
-    (println "id-of-new-label: " id-of-new-label)
+    ;(println "id-of-new-editor: " id-of-new-editor)
+    ;(println "id-of-new-label: " id-of-new-label)
     ; Assure all parents of new node are expanded
     ; Focus new node.
     (graft-topic! root-ratom id-of-new-child empty-test-topic)
@@ -613,7 +557,7 @@
      [:label {:id          label-id
               :style       {:display :initial}
               :class       "tree-control--topic-label"
-              :onMouseOver #(println "id: " span-id)
+              ;:onMouseOver #(println "id: " span-id)
               :onClick     (fn [e]
                              (swap-display-properties label-id editor-id)
                              (.focus (get-element-by-id editor-id))
@@ -624,11 +568,6 @@
               :id        editor-id
               :class     "tree-control--editor"
               :style     {:display :none}
-              ;:onKeyUp       (fn [e]                        ;(println "Saw key up: ")
-              ;                 (let [evt-map (unpack-keyboard-event e)]
-              ;                   (when (= (:key evt-map) "Enter")
-              ;                     (println "Saw enter key.")
-              ;                     (insert-empty-sibling-after! root-ratom topic-ratom span-id))))
               :onKeyDown #(handle-key-down % root-ratom topic-ratom span-id)
               :onFocus   (fn [e] (.stopPropagation e))
               :onBlur    (fn [e] (swap-display-properties label-id editor-id))
@@ -656,24 +595,24 @@
         (let [t (r/cursor sub-tree-ratom [index])
               topic-ratom (r/cursor t [:topic])
               id-prefix (str path-so-far topic-separator index)
-              ; _ (println "id-prefix: " id-prefix)
               topic-id (str id-prefix topic-separator "topic")
               span-id (str id-prefix topic-separator "span")]
           ^{:key topic-id}
           [:li {:id          topic-id
-                :draggable   "true"
-                :onDragStart (fn [evt] (println "Saw drag start: id: " topic-id)
-                               (let [id-of-dragged (event->target-id evt)]
-                                 (.setData (.-dataTransfer evt) "text" topic-id)))
-                :onDrop      (fn [evt] (println "Saw drag drop: id: " topic-id)
-                               (.preventDefault evt)
-                               (let [data (.getData (.-dataTransfer evt) "text")]
-                                 (println "getData returned: " data)
-                                 (.appendChild (.-target evt) (get-element-by-id topic-id))))
-                :onDragEnter (fn [evt] (println "Saw drag enter: id: " topic-id
-                                                (.preventDefault evt)))
-                :onDragOver  (fn [evt] (println "Saw drag over: id: " topic-id)
-                               (.preventDefault evt))}
+                ;:draggable   "true"
+                ;:onDragStart (fn [evt] (println "Saw drag start: id: " topic-id)
+                ;               (let [id-of-dragged (event->target-id evt)]
+                ;                 (.setData (.-dataTransfer evt) "text" topic-id)))
+                ;:onDrop      (fn [evt] (println "Saw drag drop: id: " topic-id)
+                ;               (.preventDefault evt)
+                ;               (let [data (.getData (.-dataTransfer evt) "text")]
+                ;                 (println "getData returned: " data)
+                ;                 (.appendChild (.-target evt) (get-element-by-id topic-id))))
+                ;:onDragEnter (fn [evt] (println "Saw drag enter: id: " topic-id
+                ;                                (.preventDefault evt)))
+                ;:onDragOver  (fn [evt] (println "Saw drag over: id: " topic-id)
+                ;               (.preventDefault evt))
+                }
            [:div.tree-control--topic-div
             (get-chevron root-ratom @t id-prefix)
             (build-topic-span root-ratom topic-ratom span-id)
