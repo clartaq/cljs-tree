@@ -1,0 +1,14 @@
+syntax: glob
+.idea/**
+target/**
+.nrepl-port
+resources/public/js/compiled/**
+figwheel_server.log
+/figwheel_server.log
+/target/
+/cljs-tree.iml
+/target/repl-port
+/resources/public/js/compiled/
+/.idea/
+/.idea/inspectionProfiles/Project_Default.xml
+/.idea/workspace.xml
