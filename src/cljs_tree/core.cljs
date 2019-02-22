@@ -5,6 +5,7 @@
 
 (ns cljs-tree.core
   (:require [cljs.pprint :as ppr]
+            [cljs.test :refer-macros [deftest is testing run-tests]]
             [clojure.string :as s]
             [clojure.walk :as w]
             [reagent.core :as r]
@@ -139,7 +140,10 @@
 
 (defn get-element-by-id
   [id]
-  (.getElementById js/document id))
+  (let [result (.getElementById js/document id)]
+    (when-not result
+      (println "get-element-by-id: returning nil for id: " id))
+    result))
 
 (defn disable-element-by-id!
   [id]
@@ -174,17 +178,21 @@
 (defn swap-style-property
   "Swap the specified style settings for the two elements."
   [first-id second-id property]
-  (let [first-style-declaration (.-style (get-element-by-id first-id))
-        second-style-declaration (.-style (get-element-by-id second-id))
-        first-display-value (.getPropertyValue first-style-declaration property)
-        second-display-value (.getPropertyValue second-style-declaration property)]
-    (.setProperty first-style-declaration property second-display-value)
-    (.setProperty second-style-declaration property first-display-value)))
+  (println "swap-style-property: first-id: " first-id ", second-id: "
+           second-id ", property: " property)
+  (let [style-declaration-of-first (.-style (get-element-by-id first-id))
+        style-declaration-of-second (.-style (get-element-by-id second-id))
+        value-of-first (.getPropertyValue style-declaration-of-first property)
+        value-of-second (.getPropertyValue style-declaration-of-second property)]
+    (.setProperty style-declaration-of-first property value-of-second)
+    (.setProperty style-declaration-of-second property value-of-first)))
 
 (defn swap-display-properties
   [first-id second-id]
   "Swap the display style properties for the two elements."
-  (swap-style-property first-id second-id "display"))
+  (do
+    (println "swap-display-properties: first-id: " first-id ", second-id: " second-id)
+    (swap-style-property first-id second-id "display")))
 
 (defn unpack-keyboard-event
   [evt]
@@ -330,16 +338,42 @@
 ;;------------------------------------------------------------------------------
 ;; Functions to manipulate the tree and subtrees.
 
-(defn is-root?
-  "Return true when the id represents a sibling in the root vector of nodes."
-  [tr-id]
-  (= 1 (count (tr-id->nav-vector-for-parent tr-id))))
+; Seems to be broken
+;(defn is-root?
+;  "Return true when the id represents a sibling in the root vector of nodes."
+;  [tr-id]
+;  (let [result (= 1 (count (tr-id->nav-vector-for-parent tr-id)))]
+;    (println "is-root? returning: " result)
+;    result))
 
 (defn lower?
   "Return true if the first path is 'lower' in the tree than second path."
   [first-path second-path]
   (pos? (compare (tr-id->sortable-nav-string first-path)
                  (tr-id->sortable-nav-string second-path))))
+
+(defn expand-node
+  "Assure that the node is expanded."
+  [root-ratom tr-id]
+  (let [nav-vector (tr-id->tree-path-nav-vector tr-id)
+        my-cursor (r/cursor root-ratom nav-vector)]
+    (swap! my-cursor assoc :expanded true)))
+
+(defn collapse-node
+  "Assure that the node is collapsed.
+  THIS HAS NOT BEEN TESTED AT ALL."
+  [root-ratom tr-id]
+  (let [nav-vector (tr-id->tree-path-nav-vector tr-id)
+        my-cursor (r/cursor root-ratom nav-vector)]
+    (swap! my-cursor assoc :expanded nil)))
+
+(defn toggle-node-expansion
+  "Toggle the 'expanded' setting for the node.
+  THIS HAS NOT BEEN TESTED AT ALL. WHAT HAPPENS WHEN THE KEY IS NOT PRESENT?"
+  [root-ratom tr-id]
+  (let [nav-vector (tr-id->tree-path-nav-vector tr-id)
+        my-cursor (r/cursor root-ratom nav-vector)]
+    (swap! my-cursor update :expanded not)))
 
 (defn get-topic
   "Return the topic map at the requested id. Return nil f there is
@@ -373,37 +407,35 @@
         child-vector-target (r/cursor root-ratom (:path-to-parent path-and-index))]
     (remove-child! child-vector-target (:child-index path-and-index))))
 
+;; This is such a dirty hack! It requires special handling if the first
+;; argument is actually the root because the root is a vector, not a map.
+;; It all boils down to the choice we made to make the root different so
+;; we don't have an always present "root" node at the top of the control.
 (defn add-child!
   "Insert the given topic at the specified index in the parents vector of
   children. No data is deleted."
   [parent-topic-map-ratom index topic-to-add]
-  ;(println "add-child!: parent-topic-map-ratom: " parent-topic-map-ratom
-  ;         "\nindex: " index ", topic-to-add: " topic-to-add)
-  (let [child-topic-vector (:children @parent-topic-map-ratom)]
-    (cond
-      (nil? (:children @parent-topic-map-ratom))
-      (do
-        ;(println "trying to insert into nil child map")
-        (swap! parent-topic-map-ratom assoc :children [topic-to-add]))
+  (if (vector? @parent-topic-map-ratom)
+    (let [new-child-vector (insert-at @parent-topic-map-ratom index topic-to-add)]
+      (println "inserting into the top-level vector of topics.")
+      (println "new-child-vector: " new-child-vector)
+      (reset! parent-topic-map-ratom new-child-vector))
 
-      (or (empty? child-topic-vector) (>= index (count child-topic-vector)))
-      (let [new-child (conj child-topic-vector topic-to-add)]
-        ;(println "inserting into empty or short child map")
-        (swap! parent-topic-map-ratom assoc :children new-child))
-
-      (and (>= index 0) (<= index (count child-topic-vector)))
-      (let [new-child-vector (insert-at child-topic-vector index topic-to-add)]
-        ;(println "inserting somewhere inside the topic vector")
-        (swap! parent-topic-map-ratom assoc :children new-child-vector))
-
-      :default (println "Aack! add-child!: Fell through to default case."))))
+    (let [child-topic-vector (:children @parent-topic-map-ratom)
+          new-child-vector (insert-at child-topic-vector index topic-to-add)]
+      (println "inserting somewhere inside the topic vector")
+      (println "new-child-vector: " new-child-vector)
+      (swap! parent-topic-map-ratom assoc :children new-child-vector))))
 
 (defn graft-topic!
   "Add a new topic at the specified location in the tree. The topic is inserted
   into the tree. No data it removed. Any existing information of the graft is
   pushed down in the tree."
   [root-ratom id-of-desired-node topic-to-graft]
+  (println "graft-topic!: id-of-desired-node: " id-of-desired-node)
+  (println "graft-topic!: topic-to-graft: " topic-to-graft)
   (let [path-and-index (tr-id->nav-vector-and-index id-of-desired-node)]
+    (println "graft-topic!: path-and-index: " path-and-index)
     (add-child! (r/cursor root-ratom (:path-to-parent path-and-index))
                 (:child-index path-and-index) topic-to-graft)))
 
@@ -491,20 +523,20 @@
   "Handle the click on the expansion chevron by toggling the state of
   expansion in the application state atom. This will cause the tree
   to re-render visually."
-  [evt full-tree-ratom]
+  [evt root-ratom]
   (let [ele-id (event->target-id evt)
         kwv (tr-id->tree-path-nav-vector ele-id)
         ekwv (conj kwv :expanded)]
-    (swap! full-tree-ratom update-in ekwv not)))
+    (swap! root-ratom update-in ekwv not)))
 
 (defn get-chevron
   "Get the expansion symbol to be used at the front of a topic. Returns
   a result based on whether the tree has children, and if so, whether they
   are expanded or not."
-  [full-tree-ratom t id-prefix]
+  [root-ratom t id-prefix]
   (let [clickable-chevron {:class    "tree-control--expansion-span"
                            :id       (str id-prefix topic-separator "chevron")
-                           :on-click (fn [evt] (handle-chevron-click! evt full-tree-ratom))
+                           :on-click (fn [evt] (handle-chevron-click! evt root-ratom))
                            :cursor   "pointer"}
         invisible-chevron {:class "tree-control--expansion-span"
                            :style {:opacity "0.0"}}
@@ -518,6 +550,15 @@
              :default [:span invisible-chevron (str \u25BA \space)])]
     es))
 
+(defn expanded?
+  "Return true if the subtree is in the expanded state (implying that it
+  has children). Returns nil if the subtree is not expanded."
+  [root-ratom tr-id]
+  (:expanded (get-topic root-ratom tr-id)))
+
+; THIS FUNCTION FAILS IF THE NODE IS
+; THE LAST NODE IN A VECTOR OF SIBLINGS THAT IS NOT EXPANDED.
+
 (defn handle-enter-key-down
   [root-ratom topic-ratom span-id]
   ;(println "Saw 'Enter' key down.")
@@ -526,7 +567,9 @@
   ;(println "    span-id:     " span-id)
   ; If the topic span has children, add a new child in the zero-position
   ; Else add a new sibling below the current topic
-  (let [id-of-new-child (if (get-topic-children root-ratom span-id)
+  (let [children (get-topic-children root-ratom span-id)
+        _ (println "expanded?: " (expanded? root-ratom span-id))
+        id-of-new-child (if (expanded? root-ratom span-id) ;children
                           (insert-child-index-into-parent-id span-id 0)
                           (increment-leaf-index span-id))
         id-of-new-editor (change-tr-id-type id-of-new-child "editor")
@@ -536,12 +579,14 @@
     ; Assure all parents of new node are expanded
     ; Focus new node.
     (graft-topic! root-ratom id-of-new-child empty-test-topic)
+    ;(when children
+    ;  (expand-node root-ratom span-id))
     (swap-display-properties id-of-new-editor id-of-new-label)
     (.focus (get-element-by-id id-of-new-editor))))
 
 (defn handle-key-down
   [evt root-ratom topic-ratom span-id]
-  (println "Saw key down event: " evt)
+  ;(println "Saw key down event: " evt)
   (let [evt-map (unpack-keyboard-event evt)]
     (cond
       (= (:key evt-map) "Enter") (handle-enter-key-down root-ratom topic-ratom span-id)
@@ -554,14 +599,15 @@
         editor-id (s/replace span-id span-id-suffix (str topic-separator "editor"))]
     [:span.tree-control--topic
 
-     [:label {:id          label-id
-              :style       {:display :initial}
-              :class       "tree-control--topic-label"
+     [:label {:id      label-id
+              :style   {:display :initial}
+              :class   "tree-control--topic-label"
               ;:onMouseOver #(println "id: " span-id)
-              :onClick     (fn [e]
-                             (swap-display-properties label-id editor-id)
-                             (.focus (get-element-by-id editor-id))
-                             (.stopPropagation e))}
+              :onClick (fn [e]
+                         (println "click")
+                         (swap-display-properties label-id editor-id)
+                         (.focus (get-element-by-id editor-id))
+                         (.stopPropagation e))}
       @topic-ratom]
 
      [:input {:type      "text"
@@ -570,7 +616,9 @@
               :style     {:display :none}
               :onKeyDown #(handle-key-down % root-ratom topic-ratom span-id)
               :onFocus   (fn [e] (.stopPropagation e))
-              :onBlur    (fn [e] (swap-display-properties label-id editor-id))
+              :onBlur    (fn [e]
+                           (println "blur")
+                           (swap-display-properties label-id editor-id))
               :onChange  (fn [e] (reset! topic-ratom (event->target-value e)))
               :value     @topic-ratom}]]))
 
@@ -598,7 +646,7 @@
               topic-id (str id-prefix topic-separator "topic")
               span-id (str id-prefix topic-separator "span")]
           ^{:key topic-id}
-          [:li {:id          topic-id
+          [:li {:id topic-id
                 ;:draggable   "true"
                 ;:onDragStart (fn [evt] (println "Saw drag start: id: " topic-id)
                 ;               (let [id-of-dragged (event->target-id evt)]
