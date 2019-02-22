@@ -419,7 +419,7 @@
     (let [new-child-vector (insert-at @parent-topic-map-ratom index topic-to-add)]
       (println "inserting into the top-level vector of topics.")
       (println "new-child-vector: " new-child-vector)
-      (reset! parent-topic-map-ratom new-child-vector))
+      (swap! parent-topic-map-ratom insert-at index topic-to-add))
 
     (let [child-topic-vector (:children @parent-topic-map-ratom)
           new-child-vector (insert-at child-topic-vector index topic-to-add)]
