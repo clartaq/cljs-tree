@@ -27,110 +27,109 @@
 ;; The hierarchical tree of tags is contained in the following. It is possible
 ;; to change it dynamically and have it re-render correctly.
 
-(defonce test-hierarchy (r/atom {:title   "cljs-tree"
-                                 :tagline "Some experiments with hierarchical data."
-                                 :tree    [{:topic    "Journal"
-                                            :expanded true
-                                            :children [{:topic "2016"}
-                                                       {:topic "2017"}
-                                                       {:topic    "2018"
-                                                        :expanded nil
-                                                        :children [{:topic    "11 - November"
-                                                                    :expanded true
-                                                                    :children [{:topic "Christmas Shopping"}
-                                                                               {:topic "Buy Groceries"}]}
-                                                                   {:topic    "22 - November"
-                                                                    :expanded true
-                                                                    :children [{:topic "Bake Pies"}]}
-                                                                   {:topic    "25 - November"
-                                                                    :expanded true
-                                                                    :children [{:topic "Cook Turkey"}]}]}]}
+(defonce test-hierarchy
+         (r/atom {:title   "cljs-tree"
+                  :tagline "Some experiments with hierarchical data."
+                  :tree    [{:topic    "Journal"
+                             :expanded true
+                             :children [{:topic "2016"}
+                                        {:topic "2017"}
+                                        {:topic    "2018"
+                                         :expanded nil
+                                         :children [{:topic    "11 - November"
+                                                     :expanded true
+                                                     :children [{:topic "Christmas Shopping"}
+                                                                {:topic "Buy Groceries"}]}
+                                                    {:topic    "22 - November"
+                                                     :expanded true
+                                                     :children [{:topic "Bake Pies"}]}
+                                                    {:topic    "25 - November"
+                                                     :expanded true
+                                                     :children [{:topic "Cook Turkey"}]}]}]}
 
-                                           ; {:topic "Flamberge"}
+                            {:topic    "Books"
+                             :expanded true
+                             :children [{:topic    "Favorite Authors"
+                                         :expanded true
+                                         :children [{:topic    "Gum-Lickin' Warburger"
+                                                     :expanded true
+                                                     :children [{:topic "Age"}
+                                                                {:topic "DOB"}
+                                                                {:topic "Obituary"}]}
+                                                    {:topic "Bob Martin"}]}
+                                        {:topic    "Genre"
+                                         :expanded true
+                                         :children [{:topic    "Science"
+                                                     :expanded nil
+                                                     :children [{:topic    "Astrophysics for People in a Hurry"
+                                                                 :expanded true
+                                                                 :children [{:topic    "Author"
+                                                                             :expanded true
+                                                                             :children [{:topic "Neil de Grasse Tyson"}]}
+                                                                            {:topic    "ISBN"
+                                                                             :expanded true
+                                                                             :children [{:topic "978-0-393-60939-4"}]}]}]}
+                                                    {:topic    "Science Fiction"
+                                                     :expanded nil
+                                                     :children [{:topic "Space Opera"}
+                                                                {:topic "Military"}]}
+                                                    {:topic "Horror"}
+                                                    {:topic "Fantasy"}
+                                                    {:topic "Biography"}
+                                                    {:topic "History"}
+                                                    {:topic    "Programming"
+                                                     :expanded true
+                                                     :children [{:topic "On Lisp"}
+                                                                {:topic "Getting Clojure"}
+                                                                {:topic    "Clean Code"
+                                                                 :expanded nil
+                                                                 :children [{:topic    "Author"
+                                                                             :expanded true
+                                                                             :children [{:topic "Robert Martin"}]}
+                                                                            {:topic    "ISBN-10"
+                                                                             :expanded true
+                                                                             :children [{:topic "0-13-235088-2"}]}
+                                                                            {:topic    "ISBN-13"
+                                                                             :expanded true
+                                                                             :children [{:topic "978-0-13-235088-4"}]}]}]}]}]}
 
-                                           {:topic    "Books"
-                                            :expanded true
-                                            :children [{:topic    "Favorite Authors"
-                                                        :expanded true
-                                                        :children [{:topic    "Gum-Lickin' Warburger"
-                                                                    :expanded true
-                                                                    :children [{:topic "Age"}
-                                                                               {:topic "DOB"}
-                                                                               {:topic "Obituary"}]}
-                                                                   {:topic "Bob Martin"}]}
-                                                       {:topic    "Genre"
-                                                        :expanded true
-                                                        :children [{:topic    "Science"
-                                                                    :expanded nil
-                                                                    :children [{:topic    "Astrophysics for People in a Hurry"
-                                                                                :expanded true
-                                                                                :children [{:topic    "Author"
-                                                                                            :expanded true
-                                                                                            :children [{:topic "Neil de Grasse Tyson"}]}
-                                                                                           {:topic    "ISBN"
-                                                                                            :expanded true
-                                                                                            :children [{:topic "978-0-393-60939-4"}]}]}]}
-                                                                   {:topic    "Science Fiction"
-                                                                    :expanded nil
-                                                                    :children [{:topic "Space Opera"}
-                                                                               {:topic "Military"}]}
-                                                                   {:topic "Horror"}
-                                                                   {:topic "Fantasy"}
-                                                                   {:topic "Biography"}
-                                                                   {:topic "History"}
-                                                                   {:topic    "Programming"
-                                                                    :expanded true
-                                                                    :children [{:topic "On Lisp"}
-                                                                               {:topic "Getting Clojure"}
-                                                                               {:topic    "Clean Code"
-                                                                                :expanded nil
-                                                                                :children [{:topic    "Author"
-                                                                                            :expanded true
-                                                                                            :children [{:topic "Robert Martin"}]}
-                                                                                           {:topic    "ISBN-10"
-                                                                                            :expanded true
-                                                                                            :children [{:topic "0-13-235088-2"}]}
-                                                                                           {:topic    "ISBN-13"
-                                                                                            :expanded true
-                                                                                            :children [{:topic "978-0-13-235088-4"}]}]}]}]}]}
+                            {:topic    "Programming"
+                             :expanded true
+                             :children [{:topic    "Language"
+                                         :expanded true
+                                         :children [{:topic    "Java"
+                                                     :expanded true
+                                                     :children [{:topic "Snippets"}
+                                                                {:topic "Books"}
+                                                                {:topic "Blogs"}
+                                                                {:topic "Gui Development"}]}
+                                                    {:topic    "Clojure"
+                                                     :expanded true
+                                                     :children [{:topic "Snippets"}
+                                                                {:topic "Books"}
+                                                                {:topic "Numerics"}]}
+                                                    {:topic    "Lisp"
+                                                     :expanded nil
+                                                     :children [{:topic "History"}
+                                                                {:topic "Weenies"}
+                                                                {:topic "The All Powerful"}]}]}]}
 
-                                           {:topic    "Programming"
-                                            :expanded true
-                                            :children [{:topic    "Language"
-                                                        :expanded true
-                                                        :children [{:topic    "Java"
-                                                                    :expanded true
-                                                                    :children [{:topic "Snippets"}
-                                                                               {:topic "Books"}
-                                                                               {:topic "Blogs"}
-                                                                               {:topic "Gui Development"}]}
-                                                                   {:topic    "Clojure"
-                                                                    :expanded true
-                                                                    :children [{:topic "Snippets"}
-                                                                               {:topic "Books"}
-                                                                               {:topic "Numerics"}]}
-                                                                   {:topic    "Lisp"
-                                                                    :expanded nil
-                                                                    :children [{:topic "History"}
-                                                                               {:topic "Weenies"}
-                                                                               {:topic "The All Powerful"}]}]}]}
+                            {:topic    "Animals"
+                             :expanded true
+                             :children [{:topic "Birds"}
+                                        {:topic    "Mammals"
+                                         :expanded nil
+                                         :children [{:topic "Elephant"}
+                                                    {:topic "Mouse"}]}
+                                        {:topic "Reptiles"}]}
 
-                                           {:topic    "Animals"
-                                            :expanded true
-                                            :children [{:topic "Birds"}
-                                                       {:topic    "Mammals"
-                                                        :expanded nil
-                                                        :children [{:topic "Elephant"}
-                                                                   {:topic "Mouse"}]}
-                                                       {:topic "Reptiles"}]}
-
-                                           {:topic    "Plants"
-                                            :expanded true
-                                            :children [{:topic    "Flowers"
-                                                        :expanded true
-                                                        :children [{:topic "Rose"}
-                                                                   {:topic "Tulip"}]}
-                                                       {:topic "Trees"}]}]}))
+                            {:topic    "Plants"
+                             :expanded true
+                             :children [{:topic    "Flowers"
+                                         :expanded true
+                                         :children [{:topic "Rose"}
+                                                    {:topic "Tulip"}]}
+                                        {:topic "Trees"}]}]}))
 
 ;;;-----------------------------------------------------------------------------
 ;;; Utilities
@@ -140,10 +139,7 @@
 
 (defn get-element-by-id
   [id]
-  (let [result (.getElementById js/document id)]
-    (when-not result
-      (println "get-element-by-id: returning nil for id: " id))
-    result))
+  (.getElementById js/document id))
 
 (defn disable-element-by-id!
   [id]
@@ -178,8 +174,6 @@
 (defn swap-style-property
   "Swap the specified style settings for the two elements."
   [first-id second-id property]
-  (println "swap-style-property: first-id: " first-id ", second-id: "
-           second-id ", property: " property)
   (let [style-declaration-of-first (.-style (get-element-by-id first-id))
         style-declaration-of-second (.-style (get-element-by-id second-id))
         value-of-first (.getPropertyValue style-declaration-of-first property)
@@ -188,11 +182,9 @@
     (.setProperty style-declaration-of-second property value-of-first)))
 
 (defn swap-display-properties
-  [first-id second-id]
   "Swap the display style properties for the two elements."
-  (do
-    (println "swap-display-properties: first-id: " first-id ", second-id: " second-id)
-    (swap-style-property first-id second-id "display")))
+  [first-id second-id]
+  (swap-style-property first-id second-id "display"))
 
 (defn unpack-keyboard-event
   [evt]
@@ -388,6 +380,12 @@
         new-nav-vector (into [] (append-element-to-vector surrounding-topic-path :children))]
     (get-in @root-ratom new-nav-vector)))
 
+(defn expanded?
+  "Return true if the subtree is in the expanded state (implying that it
+  has children). Returns nil if the subtree is not expanded."
+  [root-ratom tree-id]
+  (:expanded (get-topic root-ratom tree-id)))
+
 (defn remove-child!
   "Remove the specified child from the parents vector of children."
   [parent-ratom child-index]
@@ -426,10 +424,7 @@
   into the tree. No data it removed. Any existing information of the graft is
   pushed down in the tree."
   [root-ratom id-of-desired-node topic-to-graft]
-  (println "graft-topic!: id-of-desired-node: " id-of-desired-node)
-  (println "graft-topic!: topic-to-graft: " topic-to-graft)
   (let [path-and-index (tree-id->nav-vector-and-index id-of-desired-node)]
-    (println "graft-topic!: path-and-index: " path-and-index)
     (add-child! (r/cursor root-ratom (:path-to-parent path-and-index))
                 (:child-index path-and-index) topic-to-graft)))
 
@@ -443,6 +438,33 @@
       (do (graft-topic! root-ratom id-of-new-subtree topic-to-move)
           (prune-topic! root-ratom id-of-existing-subtree)))
     (scroll-ele-into-view id-of-new-subtree)))
+
+;;;-----------------------------------------------------------------------------
+;;; Functions to handle keystroke events.
+
+(defn handle-enter-key-down
+  "Handle a key-down event for the Enter/Return key. Insert a new headline
+  in the tree and focus it, ready for editing."
+  [root-ratom span-id]
+  ; If the topic span has children, add a new child in the zero-position
+  ; Else add a new sibling below the current topic
+  (let [id-of-new-child (if (expanded? root-ratom span-id)
+                          (insert-child-index-into-parent-id span-id 0)
+                          (increment-leaf-index span-id))]
+    (graft-topic! root-ratom id-of-new-child empty-test-topic)
+    (let [id-of-new-editor (change-tree-id-type id-of-new-child "editor")
+          id-of-new-label (change-tree-id-type id-of-new-child "label")]
+      ;; Wait for rendering to catch up.
+      (js/setTimeout #(do (swap-display-properties id-of-new-label id-of-new-editor)
+                          (.focus (get-element-by-id id-of-new-editor))) 10))))
+
+(defn handle-key-down
+  "Detect key-down events and dispatch them to the appropriate handlers."
+  [evt root-ratom topic-ratom span-id]
+  (let [evt-map (unpack-keyboard-event evt)]
+    (cond
+      (= (:key evt-map) "Enter") (handle-enter-key-down root-ratom span-id)
+      :default nil)))
 
 ;;;-----------------------------------------------------------------------------
 ;;; Some data and functions to cycle through adding, moving, moving again and
@@ -544,36 +566,6 @@
              :default [:span invisible-chevron (str \u25BA \space)])]
     es))
 
-(defn expanded?
-  "Return true if the subtree is in the expanded state (implying that it
-  has children). Returns nil if the subtree is not expanded."
-  [root-ratom tree-id]
-  (:expanded (get-topic root-ratom tree-id)))
-
-(defn handle-enter-key-down
-  "Handle a key-down event for the Enter/Return key. Insert a new headline
-  in the tree and focus it, ready for editing."
-  [root-ratom span-id]
-  ; If the topic span has children, add a new child in the zero-position
-  ; Else add a new sibling below the current topic
-  (let [id-of-new-child (if (expanded? root-ratom span-id)
-                          (insert-child-index-into-parent-id span-id 0)
-                          (increment-leaf-index span-id))]
-    (graft-topic! root-ratom id-of-new-child empty-test-topic)
-    (let [id-of-new-editor (change-tree-id-type id-of-new-child "editor")
-          id-of-new-label (change-tree-id-type id-of-new-child "label")]
-      ;; Wait for rendering to catch up.
-      (js/setTimeout #(do (swap-display-properties id-of-new-label id-of-new-editor)
-                          (.focus (get-element-by-id id-of-new-editor))) 25))))
-
-(defn handle-key-down
-  [evt root-ratom topic-ratom span-id]
-  ;(println "Saw key down event: " evt)
-  (let [evt-map (unpack-keyboard-event evt)]
-    (cond
-      (= (:key evt-map) "Enter") (handle-enter-key-down root-ratom span-id)
-      :default nil)))
-
 (defn build-topic-span
   [root-ratom topic-ratom span-id]
   (let [label-id (change-tree-id-type span-id "label")
@@ -585,7 +577,6 @@
               :class   "tree-control--topic-label"
               ;:onMouseOver #(println "id: " span-id)
               :onClick (fn [e]
-                         (println "click")
                          (swap-display-properties label-id editor-id)
                          (.focus (get-element-by-id editor-id))
                          (.stopPropagation e))}
@@ -597,9 +588,7 @@
               :style     {:display :none}
               :onKeyDown #(handle-key-down % root-ratom topic-ratom span-id)
               :onFocus   (fn [e] (.stopPropagation e))
-              :onBlur    (fn [e]
-                           (println "blur")
-                           (swap-display-properties label-id editor-id))
+              :onBlur    #(swap-display-properties label-id editor-id)
               :onChange  (fn [e] (reset! topic-ratom (event->target-value e)))
               :value     @topic-ratom}]]))
 
@@ -612,7 +601,6 @@
   ([root-ratom]
    (tree->hiccup root-ratom root-ratom "root"))
   ([root-ratom sub-tree-ratom path-so-far]
-   (println "doin a tree to hiccup")
    [:ul
     (when (= path-so-far "root")
       ; Make sure the top-level group of elements use the CSS to represent
