@@ -259,13 +259,13 @@
 ;;------------------------------------------------------------------------------
 ;; Tree id manipulation functions.
 
-(defn tr-id->tr-id-parts
+(defn tree-id->tree-id-parts
   "Split a DOM id string (as used in this program) into its parts and return
   a vector of the parts"
   [id]
   (s/split id topic-separator))
 
-(defn tr-id-parts->tr-id-string
+(defn tree-id-parts->tree-id-string
   "Return a string formed by interposing the topic-separator between the
   elements of the input vector."
   [v]
@@ -274,60 +274,60 @@
 (defn increment-leaf-index
   "Given the tree id of a leaf node, return an id with the node index
   incremented."
-  [tr-id]
-  (let [parts (tr-id->tr-id-parts tr-id)
+  [tree-id]
+  (let [parts (tree-id->tree-id-parts tree-id)
         index-in-vector (- (count parts) 2)
         leaf-index (int (nth parts index-in-vector))
         new-parts (replace-at parts index-in-vector (inc leaf-index))]
-    (tr-id-parts->tr-id-string new-parts)))
+    (tree-id-parts->tree-id-string new-parts)))
 
-(defn change-tr-id-type
+(defn change-tree-id-type
   "Change the 'type' of a tree DOM element id to something else."
   [id new-type]
-  (let [parts (tr-id->tr-id-parts id)
+  (let [parts (tree-id->tree-id-parts id)
         shortened (remove-last parts)]
-    (str (tr-id-parts->tr-id-string shortened) (str topic-separator new-type))))
+    (str (tree-id-parts->tree-id-string shortened) (str topic-separator new-type))))
 
-(defn tr-id->nav-vector-for-parent
+(defn tree-id->nav-vector-for-parent
   "Return a vector of the numeric indices in the child vectors from the
   root to the element id."
-  [tr-id]
-  (-> (tr-id->tr-id-parts tr-id)
+  [tree-id]
+  (-> (tree-id->tree-id-parts tree-id)
       (remove-last)
       (remove-first)))
 
-(defn tr-id->sortable-nav-string
+(defn tree-id->sortable-nav-string
   "Convert the element id to a string containing the vector indices
   separated by a hyphen and return it. Result can be used to lexicographically
   determine if one element is 'higher' or 'lower' than another in the tree."
-  [tr-id]
-  (string/join "-" (tr-id->nav-vector-for-parent tr-id)))
+  [tree-id]
+  (string/join "-" (tree-id->nav-vector-for-parent tree-id)))
 
 (defn insert-child-index-into-parent-id
   "Return a new id where the index of the child in the parents children vector
   has been appended."
   [parent-id child-index]
-  (-> (tr-id->tr-id-parts parent-id)
+  (-> (tree-id->tree-id-parts parent-id)
       (remove-last)
       (conj child-index)
       (conj "topic")
-      (tr-id-parts->tr-id-string)))
+      (tree-id-parts->tree-id-string)))
 
-(defn tr-id->tree-path-nav-vector
+(defn tree-id->tree-path-nav-vector
   "Return a vector of indices and keywords to navigate to the piece of data
   represented by the DOM element with the given id."
-  [tr-id]
-  (let [nav-vector (mapv int (tr-id->nav-vector-for-parent tr-id))
+  [tree-id]
+  (let [nav-vector (mapv int (tree-id->nav-vector-for-parent tree-id))
         interposed (interpose :children nav-vector)]
     (vec interposed)))
 
-(defn tr-id->nav-vector-and-index
+(defn tree-id->nav-vector-and-index
   "Parse the id into a navigation path vector to the parent of the node and an
   index within the vector of children. Return a map containing the two pieces
   of data. Basically, parse the id into a vector of information to navigate
   to the parent (a la get-n) and the index of the child encoded in the id."
-  [tr-id]
-  (let [string-vec (tr-id->tr-id-parts tr-id)
+  [tree-id]
+  (let [string-vec (tree-id->tree-id-parts tree-id)
         idx (int (nth string-vec (- (count string-vec) 2)))
         without-last-2 (remove-last-two string-vec)
         without-first (delete-at without-last-2 0)
@@ -341,37 +341,37 @@
 ; Seems to be broken
 ;(defn is-root?
 ;  "Return true when the id represents a sibling in the root vector of nodes."
-;  [tr-id]
-;  (let [result (= 1 (count (tr-id->nav-vector-for-parent tr-id)))]
+;  [tree-id]
+;  (let [result (= 1 (count (tree-id->nav-vector-for-parent tree-id)))]
 ;    (println "is-root? returning: " result)
 ;    result))
 
 (defn lower?
   "Return true if the first path is 'lower' in the tree than second path."
   [first-path second-path]
-  (pos? (compare (tr-id->sortable-nav-string first-path)
-                 (tr-id->sortable-nav-string second-path))))
+  (pos? (compare (tree-id->sortable-nav-string first-path)
+                 (tree-id->sortable-nav-string second-path))))
 
 (defn expand-node
   "Assure that the node is expanded."
-  [root-ratom tr-id]
-  (let [nav-vector (tr-id->tree-path-nav-vector tr-id)
+  [root-ratom tree-id]
+  (let [nav-vector (tree-id->tree-path-nav-vector tree-id)
         my-cursor (r/cursor root-ratom nav-vector)]
     (swap! my-cursor assoc :expanded true)))
 
 (defn collapse-node
   "Assure that the node is collapsed.
   THIS HAS NOT BEEN TESTED AT ALL."
-  [root-ratom tr-id]
-  (let [nav-vector (tr-id->tree-path-nav-vector tr-id)
+  [root-ratom tree-id]
+  (let [nav-vector (tree-id->tree-path-nav-vector tree-id)
         my-cursor (r/cursor root-ratom nav-vector)]
     (swap! my-cursor assoc :expanded nil)))
 
 (defn toggle-node-expansion
   "Toggle the 'expanded' setting for the node.
   THIS HAS NOT BEEN TESTED AT ALL. WHAT HAPPENS WHEN THE KEY IS NOT PRESENT?"
-  [root-ratom tr-id]
-  (let [nav-vector (tr-id->tree-path-nav-vector tr-id)
+  [root-ratom tree-id]
+  (let [nav-vector (tree-id->tree-path-nav-vector tree-id)
         my-cursor (r/cursor root-ratom nav-vector)]
     (swap! my-cursor update :expanded not)))
 
@@ -379,12 +379,12 @@
   "Return the topic map at the requested id. Return nil f there is
   nothing at that location."
   [root-ratom topic-id]
-  (get-in @root-ratom (tr-id->tree-path-nav-vector topic-id)))
+  (get-in @root-ratom (tree-id->tree-path-nav-vector topic-id)))
 
 (defn get-topic-children
   "If a tree topic has children, return them. Otherwise, return nil."
   [root-ratom topic-id]
-  (let [surrounding-topic-path (tr-id->tree-path-nav-vector topic-id)
+  (let [surrounding-topic-path (tree-id->tree-path-nav-vector topic-id)
         new-nav-vector (into [] (append-element-to-vector surrounding-topic-path :children))]
     (get-in @root-ratom new-nav-vector)))
 
@@ -403,7 +403,7 @@
 (defn prune-topic!
   "Remove the subtree with the given id from the tree."
   [root-ratom id-of-existing-subtree]
-  (let [path-and-index (tr-id->nav-vector-and-index id-of-existing-subtree)
+  (let [path-and-index (tree-id->nav-vector-and-index id-of-existing-subtree)
         child-vector-target (r/cursor root-ratom (:path-to-parent path-and-index))]
     (remove-child! child-vector-target (:child-index path-and-index))))
 
@@ -414,18 +414,12 @@
 (defn add-child!
   "Insert the given topic at the specified index in the parents vector of
   children. No data is deleted."
-  [parent-topic-map-ratom index topic-to-add]
-  (if (vector? @parent-topic-map-ratom)
-    (let [new-child-vector (insert-at @parent-topic-map-ratom index topic-to-add)]
-      (println "inserting into the top-level vector of topics.")
-      (println "new-child-vector: " new-child-vector)
-      (swap! parent-topic-map-ratom insert-at index topic-to-add))
-
-    (let [child-topic-vector (:children @parent-topic-map-ratom)
+  [parent-topic-ratom index topic-to-add]
+  (if (vector? @parent-topic-ratom)
+    (swap! parent-topic-ratom insert-at index topic-to-add)
+    (let [child-topic-vector (:children @parent-topic-ratom)
           new-child-vector (insert-at child-topic-vector index topic-to-add)]
-      (println "inserting somewhere inside the topic vector")
-      (println "new-child-vector: " new-child-vector)
-      (swap! parent-topic-map-ratom assoc :children new-child-vector))))
+      (swap! parent-topic-ratom assoc :children new-child-vector))))
 
 (defn graft-topic!
   "Add a new topic at the specified location in the tree. The topic is inserted
@@ -434,7 +428,7 @@
   [root-ratom id-of-desired-node topic-to-graft]
   (println "graft-topic!: id-of-desired-node: " id-of-desired-node)
   (println "graft-topic!: topic-to-graft: " topic-to-graft)
-  (let [path-and-index (tr-id->nav-vector-and-index id-of-desired-node)]
+  (let [path-and-index (tree-id->nav-vector-and-index id-of-desired-node)]
     (println "graft-topic!: path-and-index: " path-and-index)
     (add-child! (r/cursor root-ratom (:path-to-parent path-and-index))
                 (:child-index path-and-index) topic-to-graft)))
@@ -454,11 +448,11 @@
 ;;; Some data and functions to cycle through adding, moving, moving again and
 ;;; then deleting a child branch.
 
-(def add-rock-dest-id (tr-id-parts->tr-id-string ["root" 1 1 2 "topic"]))
+(def add-rock-dest-id (tree-id-parts->tree-id-string ["root" 1 1 2 "topic"]))
 
-(def mov-rock-dest-id (tr-id-parts->tr-id-string ["root" 1 0 "topic"]))
+(def mov-rock-dest-id (tree-id-parts->tree-id-string ["root" 1 0 "topic"]))
 
-(def fnl-rock-dest-id (tr-id-parts->tr-id-string ["root" 2 0 1 1 "topic"]))
+(def fnl-rock-dest-id (tree-id-parts->tree-id-string ["root" 2 0 1 1 "topic"]))
 
 (defn add-rocks!
   "Add some different stuff to the tree."
@@ -525,7 +519,7 @@
   to re-render visually."
   [evt root-ratom]
   (let [ele-id (event->target-id evt)
-        kwv (tr-id->tree-path-nav-vector ele-id)
+        kwv (tree-id->tree-path-nav-vector ele-id)
         ekwv (conj kwv :expanded)]
     (swap! root-ratom update-in ekwv not)))
 
@@ -553,50 +547,37 @@
 (defn expanded?
   "Return true if the subtree is in the expanded state (implying that it
   has children). Returns nil if the subtree is not expanded."
-  [root-ratom tr-id]
-  (:expanded (get-topic root-ratom tr-id)))
-
-; THIS FUNCTION FAILS IF THE NODE IS
-; THE LAST NODE IN A VECTOR OF SIBLINGS THAT IS NOT EXPANDED.
+  [root-ratom tree-id]
+  (:expanded (get-topic root-ratom tree-id)))
 
 (defn handle-enter-key-down
-  [root-ratom topic-ratom span-id]
-  ;(println "Saw 'Enter' key down.")
-  ;(println "    topic-ratom: " topic-ratom)
-  ;(println "    @topic-ratom: " @topic-ratom)
-  ;(println "    span-id:     " span-id)
+  "Handle a key-down event for the Enter/Return key. Insert a new headline
+  in the tree and focus it, ready for editing."
+  [root-ratom span-id]
   ; If the topic span has children, add a new child in the zero-position
   ; Else add a new sibling below the current topic
-  (let [children (get-topic-children root-ratom span-id)
-        _ (println "expanded?: " (expanded? root-ratom span-id))
-        id-of-new-child (if (expanded? root-ratom span-id) ;children
+  (let [id-of-new-child (if (expanded? root-ratom span-id)
                           (insert-child-index-into-parent-id span-id 0)
-                          (increment-leaf-index span-id))
-        id-of-new-editor (change-tr-id-type id-of-new-child "editor")
-        id-of-new-label (change-tr-id-type id-of-new-child "label")]
-    ;(println "id-of-new-editor: " id-of-new-editor)
-    ;(println "id-of-new-label: " id-of-new-label)
-    ; Assure all parents of new node are expanded
-    ; Focus new node.
+                          (increment-leaf-index span-id))]
     (graft-topic! root-ratom id-of-new-child empty-test-topic)
-    ;(when children
-    ;  (expand-node root-ratom span-id))
-    (swap-display-properties id-of-new-editor id-of-new-label)
-    (.focus (get-element-by-id id-of-new-editor))))
+    (let [id-of-new-editor (change-tree-id-type id-of-new-child "editor")
+          id-of-new-label (change-tree-id-type id-of-new-child "label")]
+      ;; Wait for rendering to catch up.
+      (js/setTimeout #(do (swap-display-properties id-of-new-label id-of-new-editor)
+                          (.focus (get-element-by-id id-of-new-editor))) 25))))
 
 (defn handle-key-down
   [evt root-ratom topic-ratom span-id]
   ;(println "Saw key down event: " evt)
   (let [evt-map (unpack-keyboard-event evt)]
     (cond
-      (= (:key evt-map) "Enter") (handle-enter-key-down root-ratom topic-ratom span-id)
+      (= (:key evt-map) "Enter") (handle-enter-key-down root-ratom span-id)
       :default nil)))
 
 (defn build-topic-span
   [root-ratom topic-ratom span-id]
-  (let [span-id-suffix (str topic-separator "span")
-        label-id (s/replace span-id span-id-suffix (str topic-separator "label"))
-        editor-id (s/replace span-id span-id-suffix (str topic-separator "editor"))]
+  (let [label-id (change-tree-id-type span-id "label")
+        editor-id (change-tree-id-type span-id "editor")]
     [:span.tree-control--topic
 
      [:label {:id      label-id
@@ -631,6 +612,7 @@
   ([root-ratom]
    (tree->hiccup root-ratom root-ratom "root"))
   ([root-ratom sub-tree-ratom path-so-far]
+   (println "doin a tree to hiccup")
    [:ul
     (when (= path-so-far "root")
       ; Make sure the top-level group of elements use the CSS to represent
