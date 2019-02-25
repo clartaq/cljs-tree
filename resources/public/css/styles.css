@@ -320,25 +320,17 @@ ul.tree-control--list ul {
     cursor: default;
 
     padding-right: 0.5rem;
-    background-color: #d4ffd8
 }
 
 .tree-control--topic-div {
-    /*display: flex;*/
-    /*flex-direction: row;*/
     margin-top: 0.1em;
     margin-bottom: 0.1em;
-    background-color: #cfe7ed;
-    border: 1px solid black;
 }
 
 .tree-control--topic {
-    /*flex: auto;*/
-    background-color: #fff4e8
 }
 
 .tree-control--topic:hover {
-    background-color: var(--form-button-hover-color);
 }
 
 .tree-control--topic-label {
