@@ -211,7 +211,12 @@
 (defn delete-at
   "Remove the nth element from the vector and return the result."
   [v n]
-  (vec (concat (subvec v 0 n) (subvec v (inc n)))))
+  (into (subvec v 0 n) (subvec v (inc n))))
+
+(defn remove-first
+  "Remove the first element in the vector and return the result."
+  [v]
+  (subvec v 1))
 
 (defn remove-last
   "Remove the last element in the vector and return the result."
@@ -223,25 +228,21 @@
   [v]
   (subvec v 0 (- (count v) 2)))
 
-(defn remove-first
-  "Remove the first element in the vector and return the result."
-  [v]
-  (subvec v 1))
-
 (defn insert-at
   "Return a copy of the vector with new-item inserted at the given n. If
   n is less than zero, the new item will be inserted at the beginning of
   the vector. If n is greater than the length of the vector, the new item
   will be inserted at the end of the vector."
   [v n new-item]
-  (vec (concat (conj (subvec v 0 n) new-item) (subvec v n))))
+  (cond (< n 0) (into [new-item] v)
+        (>= n (count v)) (conj v new-item)
+        :default (into (conj (subvec v 0 n) new-item) (subvec v n))))
 
 (defn replace-at
   "Replace the current element in the vector at index with the new-element
   and return it."
   [v index new-element]
-  (-> (delete-at v index)
-      (insert-at index new-element)))
+  (insert-at (delete-at v index) index new-element))
 
 (defn append-element-to-vector
   "Reaturn a copy of the vector with the new element appended to the end."
@@ -455,8 +456,10 @@
     (let [id-of-new-editor (change-tree-id-type id-of-new-child "editor")
           id-of-new-label (change-tree-id-type id-of-new-child "label")]
       ;; Wait for rendering to catch up.
-      (js/setTimeout #(do (swap-display-properties id-of-new-label id-of-new-editor)
-                          (.focus (get-element-by-id id-of-new-editor))) 10))))
+      (r/after-render
+        (fn []
+          (swap-display-properties id-of-new-label id-of-new-editor)
+          (.focus (get-element-by-id id-of-new-editor)))))))
 
 (defn handle-key-down
   "Detect key-down events and dispatch them to the appropriate handlers."
@@ -464,6 +467,12 @@
   (let [evt-map (unpack-keyboard-event evt)]
     (cond
       (= (:key evt-map) "Enter") (handle-enter-key-down root-ratom span-id)
+      (= (:key evt-map) "Delete") (println "Delete")
+      (= (:key evt-map) "Backspace") (println "Backspace")
+      (= (:key evt-map) "Tab") (do (println "evt-map: " evt-map)
+                                   (if (:shift-key evt-map)
+                                     (println "Shift Tab")
+                                     (println "Tab")))
       :default nil)))
 
 ;;;-----------------------------------------------------------------------------
@@ -545,14 +554,14 @@
         ekwv (conj kwv :expanded)]
     (swap! root-ratom update-in ekwv not)))
 
-(defn get-chevron
+(defn build-chevron
   "Get the expansion symbol to be used at the front of a topic. Returns
   a result based on whether the tree has children, and if so, whether they
   are expanded or not."
   [root-ratom t id-prefix]
   (let [clickable-chevron {:class    "tree-control--expansion-span"
                            :id       (str id-prefix topic-separator "chevron")
-                           :on-click (fn [evt] (handle-chevron-click! evt root-ratom))
+                           :on-click #(handle-chevron-click! % root-ratom)
                            :cursor   "pointer"}
         invisible-chevron {:class "tree-control--expansion-span"
                            :style {:opacity "0.0"}}
@@ -567,6 +576,7 @@
     es))
 
 (defn build-topic-span
+  "Build the textual part of a topic/headline."
   [root-ratom topic-ratom span-id]
   (let [label-id (change-tree-id-type span-id "label")
         editor-id (change-tree-id-type span-id "editor")]
@@ -587,9 +597,9 @@
               :class     "tree-control--editor"
               :style     {:display :none}
               :onKeyDown #(handle-key-down % root-ratom topic-ratom span-id)
-              :onFocus   (fn [e] (.stopPropagation e))
+              :onFocus   #(.stopPropagation %)
               :onBlur    #(swap-display-properties label-id editor-id)
-              :onChange  (fn [e] (reset! topic-ratom (event->target-value e)))
+              :onChange  #(reset! topic-ratom (event->target-value %))
               :value     @topic-ratom}]]))
 
 (defn tree->hiccup
@@ -616,23 +626,9 @@
               topic-id (str id-prefix topic-separator "topic")
               span-id (str id-prefix topic-separator "span")]
           ^{:key topic-id}
-          [:li {:id topic-id
-                ;:draggable   "true"
-                ;:onDragStart (fn [evt] (println "Saw drag start: id: " topic-id)
-                ;               (let [id-of-dragged (event->target-id evt)]
-                ;                 (.setData (.-dataTransfer evt) "text" topic-id)))
-                ;:onDrop      (fn [evt] (println "Saw drag drop: id: " topic-id)
-                ;               (.preventDefault evt)
-                ;               (let [data (.getData (.-dataTransfer evt) "text")]
-                ;                 (println "getData returned: " data)
-                ;                 (.appendChild (.-target evt) (get-element-by-id topic-id))))
-                ;:onDragEnter (fn [evt] (println "Saw drag enter: id: " topic-id
-                ;                                (.preventDefault evt)))
-                ;:onDragOver  (fn [evt] (println "Saw drag over: id: " topic-id)
-                ;               (.preventDefault evt))
-                }
+          [:li {:id topic-id}
            [:div.tree-control--topic-div
-            (get-chevron root-ratom @t id-prefix)
+            (build-chevron root-ratom @t id-prefix)
             (build-topic-span root-ratom topic-ratom span-id)
             (when (and (:children @t)
                        (:expanded @t))
