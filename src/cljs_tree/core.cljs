@@ -628,12 +628,12 @@
           ^{:key topic-id}
           [:li {:id topic-id}
            [:div.tree-control--topic-div
-            (build-chevron root-ratom @t id-prefix)
-            (build-topic-span root-ratom topic-ratom span-id)
+            [build-chevron root-ratom @t id-prefix]
+            [build-topic-span root-ratom topic-ratom span-id]
             (when (and (:children @t)
                        (:expanded @t))
-              (tree->hiccup root-ratom
-                            (r/cursor t [:children]) id-prefix))]])))]))
+              [tree->hiccup root-ratom
+                            (r/cursor t [:children]) id-prefix])]])))]))
 
 (defn home
   "Return a function to layout the home (only) page."
@@ -646,7 +646,7 @@
      [:div.tree-control
       [:p.tree-control--description "Here is the result of "
        [:code "tree->hiccup"] ":"]
-      [:div.tree-control--content (tree->hiccup (r/cursor app-state-ratom [:tree]))]
+      [:div.tree-control--content [tree->hiccup (r/cursor app-state-ratom [:tree])]]
       [add-move-remove-rocks-play-text-button app-state-ratom]]]))
 
 (r/render-component [home test-hierarchy]
