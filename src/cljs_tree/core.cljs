@@ -21,6 +21,9 @@
 ; building path strings through the hierarchy.
 (def ^{:constant true} topic-separator \u02D1)
 
+(def id-of-first-top-level-topic (str "root" topic-separator 0 topic-separator "topic"))
+(def id-of-second-top-level-topic (str "root" topic-separator 1 topic-separator "topic"))
+
 (def empty-test-topic {:topic "Empty Test Topic"})
 (def empty-topic {:topic ""})
 
@@ -178,6 +181,8 @@
         style-declaration-of-second (.-style (get-element-by-id second-id))
         value-of-first (.getPropertyValue style-declaration-of-first property)
         value-of-second (.getPropertyValue style-declaration-of-second property)]
+    (println "value of first: " value-of-first)
+    (println "value-of-second: " value-of-second)
     (.setProperty style-declaration-of-first property value-of-second)
     (.setProperty style-declaration-of-second property value-of-first)))
 
@@ -264,6 +269,27 @@
   [v]
   (str (s/join topic-separator v)))
 
+(defn is-top?
+  [tree-id]
+  (println "is-top?: tree-id: " tree-id)
+  (let [parts (remove-last (tree-id->tree-id-parts tree-id))
+        result (= parts ["root" "0"])]
+    (println "parts: " parts)
+    (println "result: " result)
+    result))
+
+(defn nav-index-vector->tree-id-string
+  "Creates a DOM id string from a vector of indices used to navigate to
+  the topic. If no id type is specified, the default value of 'topic'
+  is used."
+  [nav-index-vector & type-to-use]
+  (let [id-type (or type-to-use "topic")
+        result (str "root" topic-separator
+                    (tree-id-parts->tree-id-string nav-index-vector)
+                    topic-separator id-type)]
+    (println "result: " result)
+    result))
+
 (defn increment-leaf-index
   "Given the tree id of a leaf node, return an id with the node index
   incremented."
@@ -281,7 +307,7 @@
         shortened (remove-last parts)]
     (str (tree-id-parts->tree-id-string shortened) (str topic-separator new-type))))
 
-(defn tree-id->nav-vector-for-parent
+(defn tree-id->nav-index-vector
   "Return a vector of the numeric indices in the child vectors from the
   root to the element id."
   [tree-id]
@@ -294,7 +320,7 @@
   separated by a hyphen and return it. Result can be used to lexicographically
   determine if one element is 'higher' or 'lower' than another in the tree."
   [tree-id]
-  (string/join "-" (tree-id->nav-vector-for-parent tree-id)))
+  (string/join "-" (tree-id->nav-index-vector tree-id)))
 
 (defn insert-child-index-into-parent-id
   "Return a new id where the index of the child in the parents children vector
@@ -310,7 +336,7 @@
   "Return a vector of indices and keywords to navigate to the piece of data
   represented by the DOM element with the given id."
   [tree-id]
-  (let [nav-vector (mapv int (tree-id->nav-vector-for-parent tree-id))
+  (let [nav-vector (mapv int (tree-id->nav-index-vector tree-id))
         interposed (interpose :children nav-vector)]
     (vec interposed)))
 
@@ -328,6 +354,15 @@
         interposed (interpose :children index-vector)]
     {:path-to-parent (vec interposed) :child-index idx}))
 
+(defn id-of-parent
+  "Return the DOM id (if any) of the parent of the input tree id."
+  [tree-id]
+  (when (and tree-id (not (is-top? tree-id)))
+    (-> tree-id
+        tree-id->nav-index-vector
+        remove-last
+        nav-index-vector->tree-id-string)))
+
 ;;------------------------------------------------------------------------------
 ;; Functions to manipulate the tree and subtrees.
 
@@ -335,7 +370,7 @@
 ;(defn is-root?
 ;  "Return true when the id represents a sibling in the root vector of nodes."
 ;  [tree-id]
-;  (let [result (= 1 (count (tree-id->nav-vector-for-parent tree-id)))]
+;  (let [result (= 1 (count (tree-id->nav-index-vector tree-id)))]
 ;    (println "is-root? returning: " result)
 ;    result))
 
@@ -390,7 +425,9 @@
 (defn remove-child!
   "Remove the specified child from the parents vector of children."
   [parent-ratom child-index]
+  (println "remove-child!: @parent-ratom: " @parent-ratom ", child-index: " child-index)
   (let [vector-of-children (:children @parent-ratom)]
+    (println "vector-of-children: " vector-of-children)
     (when (and vector-of-children
                (>= child-index 0)
                (< child-index (count vector-of-children)))
@@ -399,12 +436,22 @@
           (swap! parent-ratom dissoc :children)
           (swap! parent-ratom assoc :children new-child-vector))))))
 
+(defn remove-top-level-sibling!
+  "Remove one of the top level topics from the tree."
+  [root-ratom sibling-index]
+  (println "remove-top-level-sibling!: sibling-index: " sibling-index)
+  (swap! root-ratom delete-at sibling-index))
+
 (defn prune-topic!
   "Remove the subtree with the given id from the tree."
   [root-ratom id-of-existing-subtree]
   (let [path-and-index (tree-id->nav-vector-and-index id-of-existing-subtree)
-        child-vector-target (r/cursor root-ratom (:path-to-parent path-and-index))]
-    (remove-child! child-vector-target (:child-index path-and-index))))
+        parent-nav-index-vector (:path-to-parent path-and-index)
+        child-index (:child-index path-and-index)]
+    (if (empty? parent-nav-index-vector)
+      (remove-top-level-sibling! root-ratom child-index)
+      (let [child-vector-target (r/cursor root-ratom parent-nav-index-vector)]
+        (remove-child! child-vector-target child-index)))))
 
 ;; This is such a dirty hack! It requires special handling if the first
 ;; argument is actually the root because the root is a vector, not a map.
@@ -461,6 +508,56 @@
           (swap-display-properties id-of-new-label id-of-new-editor)
           (.focus (get-element-by-id id-of-new-editor)))))))
 
+(defn id-of-previous-sibling
+  "Return the id of the previous sibling of this tree id. Returns nil if this
+  tree id is the first (zero'th) in a group of siblings."
+  [current-sibling-id]
+  (let [parts (tree-id->tree-id-parts current-sibling-id)
+        _ (println "parts: " parts)
+        last-path-index (int (nth parts (- (count parts) 2)))
+        _ (println "last-path-index: " last-path-index)]
+    (when (pos? last-path-index)
+      (tree-id-parts->tree-id-string
+        (into (remove-last-two parts) [(dec last-path-index) "topic"])))))
+
+(defn id-of-last-visible-child
+  "Return the last visible child of the branch starting at tree-id. The last
+  visible child may be many levels deeper in the tree."
+  [root-ratom tree-id]
+  (println "id-of-last-visible-child: tree-id: "  tree-id)
+  (let [topic-map (get-topic root-ratom tree-id)]
+    (println "topic-map: " topic-map)))
+
+(defn focus-editor-for-id
+  "Focus the editor associated with the id. Assumes the topic is visible and
+  that the editor is not already focused. WILL UNFOCUS EDITOR IF IT IS ALREADY
+  FOCUSED."
+  [tree-id]
+  (println "focus-editor-on-id: tree-id: " tree-id)
+  (when tree-id
+    (let [editor-id (change-tree-id-type tree-id "editor")
+          label-id (change-tree-id-type tree-id "label")]
+      (swap-display-properties label-id editor-id)
+      (.focus (get-element-by-id editor-id)))))
+
+(defn handle-backspace-key-down
+  "Handle a key-down event for the Backspace key. Tries to intelligently handle
+  cases when the key is tapped in an empty topic by deciding what happens to
+  children of the deleted topic and where the focus should travel to."
+  [root-ratom evt topic-ratom span-id]
+  (when (zero? (count @topic-ratom))
+    (.preventDefault evt)
+    (if (is-top? span-id)
+      (when (get-topic root-ratom id-of-second-top-level-topic)
+        (id-of-last-visible-child root-ratom (id-of-previous-sibling span-id))
+        (prune-topic! root-ratom span-id))
+      (do
+        (prune-topic! root-ratom span-id)
+        (id-of-last-visible-child root-ratom (id-of-previous-sibling span-id))
+        (if-let [id-to-focus (id-of-previous-sibling span-id)]
+          (focus-editor-for-id id-to-focus)
+          (focus-editor-for-id (id-of-parent span-id)))))))
+
 (defn handle-key-down
   "Detect key-down events and dispatch them to the appropriate handlers."
   [evt root-ratom topic-ratom span-id]
@@ -468,7 +565,8 @@
     (cond
       (= (:key evt-map) "Enter") (handle-enter-key-down root-ratom span-id)
       (= (:key evt-map) "Delete") (println "Delete")
-      (= (:key evt-map) "Backspace") (println "Backspace")
+      (= (:key evt-map) "Backspace") (handle-backspace-key-down
+                                       root-ratom evt topic-ratom span-id)
       (= (:key evt-map) "Tab") (do (println "evt-map: " evt-map)
                                    (if (:shift-key evt-map)
                                      (println "Shift Tab")
@@ -633,7 +731,7 @@
             (when (and (:children @t)
                        (:expanded @t))
               [tree->hiccup root-ratom
-                            (r/cursor t [:children]) id-prefix])]])))]))
+               (r/cursor t [:children]) id-prefix])]])))]))
 
 (defn home
   "Return a function to layout the home (only) page."
@@ -657,3 +755,10 @@
   ;; your application
   ;; (swap! app-state update-in [:__figwheel_counter] inc)
   )
+
+(deftest test-numbers
+  (is (= 1 1))
+  (is (not= 1 2))
+  (is (= "a" "A")))
+
+(run-tests)
