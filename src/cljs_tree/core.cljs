@@ -4,12 +4,15 @@
 ;;;;
 
 (ns cljs-tree.core
-  (:require [cljs.pprint :as ppr]
-            [cljs.test :refer-macros [deftest is testing run-tests]]
-            [clojure.string :as s]
-            [clojure.walk :as w]
-            [reagent.core :as r]
-            [clojure.string :as string]))
+  (:require
+    ;[cljs.pprint :as ppr]
+    [clojure.string :as s]
+    ;[clojure.walk :as w]
+    [reagent.core :as r]
+    [clojure.string :as string]
+    [cljs-tree.vector-utils :refer [delete-at remove-first remove-last
+                                    remove-last-two insert-at replace-at
+                                    append-element-to-vector]]))
 
 (enable-console-print!)
 
@@ -211,50 +214,6 @@
     event-data-map))
 
 ;;------------------------------------------------------------------------------
-;; Vector-related manipulations.
-
-(defn delete-at
-  "Remove the nth element from the vector and return the result."
-  [v n]
-  (into (subvec v 0 n) (subvec v (inc n))))
-
-(defn remove-first
-  "Remove the first element in the vector and return the result."
-  [v]
-  (subvec v 1))
-
-(defn remove-last
-  "Remove the last element in the vector and return the result."
-  [v]
-  (subvec v 0 (dec (count v))))
-
-(defn remove-last-two
-  "Remove the last two elements in the vector and return the result."
-  [v]
-  (subvec v 0 (- (count v) 2)))
-
-(defn insert-at
-  "Return a copy of the vector with new-item inserted at the given n. If
-  n is less than zero, the new item will be inserted at the beginning of
-  the vector. If n is greater than the length of the vector, the new item
-  will be inserted at the end of the vector."
-  [v n new-item]
-  (cond (< n 0) (into [new-item] v)
-        (>= n (count v)) (conj v new-item)
-        :default (into (conj (subvec v 0 n) new-item) (subvec v n))))
-
-(defn replace-at
-  "Replace the current element in the vector at index with the new-element
-  and return it."
-  [v index new-element]
-  (insert-at (delete-at v index) index new-element))
-
-(defn append-element-to-vector
-  "Reaturn a copy of the vector with the new element appended to the end."
-  [v new-item]
-  (into [] (concat v [new-item])))
-
-;;------------------------------------------------------------------------------
 ;; Tree id manipulation functions.
 
 (defn tree-id->tree-id-parts
@@ -416,6 +375,10 @@
         new-nav-vector (into [] (append-element-to-vector surrounding-topic-path :children))]
     (get-in @root-ratom new-nav-vector)))
 
+(defn has-children?
+  [root-ratom topic-id]
+  (:children (get-topic root-ratom topic-id)))
+
 (defn expanded?
   "Return true if the subtree is in the expanded state (implying that it
   has children). Returns nil if the subtree is not expanded."
@@ -524,9 +487,26 @@
   "Return the last visible child of the branch starting at tree-id. The last
   visible child may be many levels deeper in the tree."
   [root-ratom tree-id]
-  (println "id-of-last-visible-child: tree-id: "  tree-id)
-  (let [topic-map (get-topic root-ratom tree-id)]
-    (println "topic-map: " topic-map)))
+  (println "id-of-last-visible-child: tree-id: " tree-id)
+  (let [id-prefix-parts (remove-last (tree-id->tree-id-parts tree-id))
+        _ (println "id-prefix-parts: " id-prefix-parts)
+        starting-id (tree-id-parts->tree-id-string id-prefix-parts)
+        _ (println "starting-id: " starting-id)
+        last-id (loop [id-so-far tree-id
+                       topic-map (get-topic root-ratom id-so-far)]
+                  (if (not (and (:expanded topic-map) (:children topic-map)))
+                    id-so-far
+                    (let [next-child-vector (:children topic-map)
+                          _ (println "next-child-vector: " next-child-vector)
+                          _ (println "(count next-child-vector): " (count next-child-vector))
+                          next-index (dec (count next-child-vector))
+                          _ (println "next-index: " next-index)
+                          next-id (insert-child-index-into-parent-id id-so-far next-index) ;(str id-so-far topic-separator next-index)
+                          _ (println "next-id: " next-id)]
+                      (recur next-id next-child-vector))))
+        ]
+    (println "id-of-last-visible-child: last-id: " last-id)
+    last-id))
 
 (defn focus-editor-for-id
   "Focus the editor associated with the id. Assumes the topic is visible and
@@ -549,14 +529,58 @@
     (.preventDefault evt)
     (if (is-top? span-id)
       (when (get-topic root-ratom id-of-second-top-level-topic)
-        (id-of-last-visible-child root-ratom (id-of-previous-sibling span-id))
+        ; Just delete the top-most headline.
+        (println "Pruning top level headline")
+        ;(id-of-last-visible-child root-ratom (id-of-previous-sibling span-id))
         (prune-topic! root-ratom span-id))
       (do
+        (println "")
         (prune-topic! root-ratom span-id)
-        (id-of-last-visible-child root-ratom (id-of-previous-sibling span-id))
+        ;(id-of-last-visible-child root-ratom (id-of-previous-sibling span-id))
         (if-let [id-to-focus (id-of-previous-sibling span-id)]
-          (focus-editor-for-id id-to-focus)
-          (focus-editor-for-id (id-of-parent span-id)))))))
+          (do
+            (println "id-to-focus branch")
+            (focus-editor-for-id
+              (id-of-last-visible-child root-ratom id-to-focus)))
+          (do
+            (println "last-visible-child-branch")
+            (focus-editor-for-id
+              (id-of-last-visible-child root-ratom (id-of-previous-sibling span-id))))
+          ;(id-of-parent span-id)
+          )))))
+
+(defn promote-headline
+  [root-ratom evt topic-ratom span-id]
+  (println "promote-headline"))
+
+(defn demote-headline
+  [root-ratom evt topic-ratom span-id]
+  (println "demote-headline")
+  (println "(id-of-previous-sibling span-id): " (id-of-previous-sibling span-id))
+  (if (has-children? root-ratom (id-of-previous-sibling span-id))
+    (println "Has children")
+    (println "Has NO children"))
+  (when-let [previous-sibling (id-of-previous-sibling span-id)]
+    (expand-node root-ratom previous-sibling)
+    (let [sibling-parts (tree-id->tree-id-parts previous-sibling)
+          with-added-leaf (conj (remove-last sibling-parts) 0)
+          demoted-prefix (tree-id-parts->tree-id-string with-added-leaf)
+          demoted-id (str demoted-prefix topic-separator "topic")]
+      (println "demoted-id: " demoted-id)
+      (move-branch! root-ratom span-id demoted-id))))
+
+(defn handle-tab-key-down
+  [root-ratom evt topic-ratom span-id]
+  (println "handle-tab-key-down: span-id: " span-id)
+  (.preventDefault evt)
+  (let [evt-map (unpack-keyboard-event evt)]
+    (cond
+      (and (:shift-key evt-map)
+           (:cmd-key evt-map)
+           (:alt-key evt-map)) (promote-headline root-ratom evt topic-ratom span-id)
+      (and (:cmd-key evt-map)
+           (:alt-key evt-map)) (demote-headline root-ratom evt topic-ratom span-id)
+      :default nil)))
 
 (defn handle-key-down
   "Detect key-down events and dispatch them to the appropriate handlers."
@@ -567,10 +591,8 @@
       (= (:key evt-map) "Delete") (println "Delete")
       (= (:key evt-map) "Backspace") (handle-backspace-key-down
                                        root-ratom evt topic-ratom span-id)
-      (= (:key evt-map) "Tab") (do (println "evt-map: " evt-map)
-                                   (if (:shift-key evt-map)
-                                     (println "Shift Tab")
-                                     (println "Tab")))
+      (= (:key evt-map) "Tab") (handle-tab-key-down root-ratom evt
+                                                    topic-ratom span-id)
       :default nil)))
 
 ;;;-----------------------------------------------------------------------------
@@ -683,7 +705,7 @@
      [:label {:id      label-id
               :style   {:display :initial}
               :class   "tree-control--topic-label"
-              ;:onMouseOver #(println "id: " span-id)
+              ;onMouseOver #(println "id: " span-id)
               :onClick (fn [e]
                          (swap-display-properties label-id editor-id)
                          (.focus (get-element-by-id editor-id))
@@ -755,10 +777,3 @@
   ;; your application
   ;; (swap! app-state update-in [:__figwheel_counter] inc)
   )
-
-(deftest test-numbers
-  (is (= 1 1))
-  (is (not= 1 2))
-  (is (= "a" "A")))
-
-(run-tests)
