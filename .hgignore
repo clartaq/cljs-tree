@@ -5,3 +5,7 @@ figwheel_server.log
 /cljs-tree.iml
 /resources/public/js/compiled/
 /.idea/
+/node_modules/
+/.lein-failures
+/doo-index.html
+/package-lock.json
