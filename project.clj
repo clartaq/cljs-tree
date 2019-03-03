@@ -2,59 +2,73 @@
   :description "FIXME: write this!"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
-            :url "http://www.eclipse.org/legal/epl-v10.html"}
+            :url  "http://www.eclipse.org/legal/epl-v10.html"}
 
-  
-  
   :min-lein-version "2.7.1"
 
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [org.clojure/clojurescript "1.10.520"]
-                 [org.clojure/core.async  "0.4.490"]
+                 [org.clojure/core.async "0.4.490"]
                  [reagent "0.8.1"]]
 
-  :plugins [[lein-figwheel "0.5.16"]
+  :plugins [[lein-doo "0.1.10"] [lein-figwheel "0.5.16"]
             [lein-cljsbuild "1.1.7" :exclusions [[org.clojure/clojure]]]]
 
+  :aliases {"test-cljs" ["doo" "phantom" "test" "auto"]}
+
   :source-paths ["src"]
+  :test-paths ["test"]
 
   :cljsbuild {:builds
-              [{:id "dev"
+              [{:id           "dev"
                 :source-paths ["src"]
 
                 ;; The presence of a :figwheel configuration here
                 ;; will cause figwheel to inject the figwheel client
                 ;; into your build
-                :figwheel {:on-jsload "cljs-tree.core/on-js-reload"
-                           ;; :open-urls will pop open your application
-                           ;; in the default browser once Figwheel has
-                           ;; started and compiled your application.
-                           ;; Comment this out once it no longer serves you.
-                           :open-urls ["http://localhost:3449/index.html"]}
+                :figwheel     {:on-jsload "cljs-tree.core/on-js-reload"
+                               ;; :open-urls will pop open your application
+                               ;; in the default browser once Figwheel has
+                               ;; started and compiled your application.
+                               ;; Comment this out once it no longer serves you.
+                               :open-urls ["http://localhost:3449/index.html"]}
 
-                :compiler {:main cljs-tree.core
-                           :asset-path "js/compiled/out"
-                           :output-to "resources/public/js/compiled/cljs_tree.js"
-                           :output-dir "resources/public/js/compiled/out"
-                           :source-map-timestamp true
-                           ;; To console.log CLJS data-structures make sure you enable devtools in Chrome
-                           ;; https://github.com/binaryage/cljs-devtools
-                           :preloads [devtools.preload]}}
+                :compiler     {:main                 cljs-tree.core
+                               :asset-path           "js/compiled/out"
+                               :output-to            "resources/public/js/compiled/cljs_tree.js"
+                               :output-dir           "resources/public/js/compiled/out"
+                               :source-map-timestamp true
+                               ;; To console.log CLJS data-structures make sure you enable devtools in Chrome
+                               ;; https://github.com/binaryage/cljs-devtools
+                               :preloads             [devtools.preload]}}
+
+               {:id           "test"
+                :source-paths ["src" "test"]
+                :figwheel     {:on-jsload "cljs-tree-test.runner/on-js-reload"
+                               :open-urls ["http://localhost:3449/test-index.html"]}
+                :compiler     {:main          cljs-tree-test.runner
+                               :asset-path    "js/compiled/test"
+                               :output-to     "resources/public/js/compiled/test.js"
+                               :output-dir    "resources/public/js/compiled/test"
+                               :optimizations :none
+                               ;:externs       ["externs/syntax.js"]
+                               }}
+
                ;; This next build is a compressed minified build for
                ;; production. You can build this with:
                ;; lein cljsbuild once min
-               {:id "min"
+               {:id           "min"
                 :source-paths ["src"]
-                :compiler {:output-to "resources/public/js/compiled/cljs_tree.js"
-                           :main cljs-tree.core
-                           :optimizations :advanced
-                           :pretty-print false}}]}
+                :compiler     {:output-to     "resources/public/js/compiled/cljs_tree.js"
+                               :main          cljs-tree.core
+                               :optimizations :advanced
+                               :pretty-print  false}}]}
 
   :figwheel {;; :http-server-root "public" ;; default and assumes "resources"
              ;; :server-port 3449 ;; default
              ;; :server-ip "127.0.0.1"
 
-             :css-dirs ["resources/public/css"] ;; watch and update CSS
+             :css-dirs ["resources/public/css"]             ;; watch and update CSS
 
              ;; Start an nREPL server into the running figwheel process
              ;; :nrepl-port 7888
@@ -93,14 +107,18 @@
   ;; Setting up nREPL for Figwheel and ClojureScript dev
   ;; Please see:
   ;; https://github.com/bhauman/lein-figwheel/wiki/Using-the-Figwheel-REPL-within-NRepl
-  :profiles {:dev {:dependencies [[binaryage/devtools "0.9.10"]
-                                  [figwheel-sidecar "0.5.18"]
-                                  [cider/piggieback "0.3.10"]]
-                   ;; need to add dev source path here to get user.clj loaded
-                   :source-paths ["src" "dev"]
-                   ;; for CIDER
-                   ;; :plugins [[cider/cider-nrepl "0.12.0"]]
-                   :repl-options {:nrepl-middleware [cider.piggieback/wrap-cljs-repl]}
-                   ;; need to add the compliled assets to the :clean-targets
-                   :clean-targets ^{:protect false} ["resources/public/js/compiled"
-                                                     :target-path]}})
+  :profiles {:dev  {:dependencies  [[binaryage/devtools "0.9.10"]
+                                    [figwheel-sidecar "0.5.18"]
+                                    [cider/piggieback "0.3.10"]]
+                    ;; need to add dev source path here to get user.clj loaded
+                    :source-paths  ["src" "dev"]
+                    ;; for CIDER
+                    ;; :plugins [[cider/cider-nrepl "0.12.0"]]
+                    :repl-options  {:nrepl-middleware [cider.piggieback/wrap-cljs-repl]}
+                    ;; need to add the compliled assets to the :clean-targets
+                    :clean-targets ^{:protect false} ["resources/public/js/compiled"
+                                                      :target-path]}
+
+             :test {:source-paths  ["src" "dev"]
+                    :clean-targets ^{:protect false} ["resources/public/js/compiled"
+                                                      :target-path]}})
