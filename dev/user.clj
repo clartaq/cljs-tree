@@ -29,6 +29,11 @@
   ;; otherwise you can pass a configuration into start-figwheel! manually
   (f/start-figwheel!))
 
+(defn fig-start-test
+  "Start figwheel for the testing target."
+  []
+  (f/start-figwheel! :test))
+
 (defn fig-stop
   "Stop the figwheel server and watch based auto-compiler."
   []
