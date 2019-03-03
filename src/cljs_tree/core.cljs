@@ -237,14 +237,6 @@
   [tree-id]
   (= ["root" "0"] (remove-last (tree-id->tree-id-parts tree-id))))
 
-(defn tree-id->nav-index-vector
-  "Return a vector of the numeric indices in the child vectors from the
-  root to the element id."
-  [tree-id]
-  (-> (tree-id->tree-id-parts tree-id)
-      (remove-last)
-      (remove-first)))
-
 (defn nav-index-vector->tree-id-string
   "Creates a DOM id string from a vector of indices used to navigate to
   the topic. If no id type is specified, the default value of 'topic'
@@ -255,6 +247,21 @@
                     (tree-id-parts->tree-id-string nav-index-vector)
                     topic-separator id-type)]
     result))
+
+(defn tree-id->nav-index-vector
+  "Return a vector of the numeric indices in the child vectors from the
+  root to the element id."
+  [tree-id]
+  (-> (tree-id->tree-id-parts tree-id)
+      (remove-last)
+      (remove-first)))
+
+(defn tree-id->sortable-nav-string
+  "Convert the element id to a string containing the vector indices
+  separated by a hyphen and return it. Result can be used to lexicographically
+  determine if one element is 'higher' or 'lower' than another in the tree."
+  [tree-id]
+  (string/join "-" (tree-id->nav-index-vector tree-id)))
 
 (defn increment-leaf-index
   "Given the tree id of a leaf node, return an id with the node index
@@ -272,13 +279,6 @@
   (let [parts (tree-id->tree-id-parts id)
         shortened (remove-last parts)]
     (str (tree-id-parts->tree-id-string shortened) (str topic-separator new-type))))
-
-(defn tree-id->sortable-nav-string
-  "Convert the element id to a string containing the vector indices
-  separated by a hyphen and return it. Result can be used to lexicographically
-  determine if one element is 'higher' or 'lower' than another in the tree."
-  [tree-id]
-  (string/join "-" (tree-id->nav-index-vector tree-id)))
 
 (defn insert-child-index-into-parent-id
   "Return a new id where the index of the child in the parents children vector
