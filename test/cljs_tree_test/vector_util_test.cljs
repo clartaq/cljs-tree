@@ -1,20 +1,14 @@
+;;;-----------------------------------------------------------------------------
+;;; Tests for vector manipulation functions.
+
 (ns ^:figwheel-always cljs-tree-test.vector-util-test
   (:require
-    [cljs-tree.core :as ct]
     [cljs-tree.vector-utils :as v]
-    [cljs.test :as t]
     [cljs.test :refer-macros [deftest is testing]]))
-
-;(deftest fake-failing-test
-;  (testing "fake failing description"
-;    (is (= 1 2))))
 
 (enable-console-print!)
 
 (println "Loading cljs-tree-test.core-test")
-
-;;------------------------------------------------------------------------------
-;; Tests for vector manipulation functions.
 
 ;-------------------------------------------------------------------------------
 ; Element deletion functions.
