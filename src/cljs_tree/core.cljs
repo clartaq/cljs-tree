@@ -338,6 +338,16 @@
   (pos? (compare (tree-id->sortable-nav-string first-path)
                  (tree-id->sortable-nav-string second-path))))
 
+(defn get-topic
+  "Return the topic map at the requested id. Return nil if there is
+  nothing at that location."
+  [root-ratom topic-id]
+  (get-in @root-ratom (tree-id->tree-path-nav-vector topic-id)))
+
+(defn has-children?
+  [root-ratom topic-id]
+  (:children (get-topic root-ratom topic-id)))
+
 (defn expand-node
   "Assure that the node is expanded."
   [root-ratom tree-id]
@@ -361,22 +371,12 @@
         my-cursor (r/cursor root-ratom nav-vector)]
     (swap! my-cursor update :expanded not)))
 
-(defn get-topic
-  "Return the topic map at the requested id. Return nil f there is
-  nothing at that location."
-  [root-ratom topic-id]
-  (get-in @root-ratom (tree-id->tree-path-nav-vector topic-id)))
-
 (defn get-topic-children
   "If a tree topic has children, return them. Otherwise, return nil."
   [root-ratom topic-id]
   (let [surrounding-topic-path (tree-id->tree-path-nav-vector topic-id)
         new-nav-vector (into [] (append-element-to-vector surrounding-topic-path :children))]
     (get-in @root-ratom new-nav-vector)))
-
-(defn has-children?
-  [root-ratom topic-id]
-  (:children (get-topic root-ratom topic-id)))
 
 (defn expanded?
   "Return true if the subtree is in the expanded state (implying that it
