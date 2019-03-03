@@ -220,33 +220,40 @@
   "Split a DOM id string (as used in this program) into its parts and return
   a vector of the parts"
   [id]
-  (s/split id topic-separator))
+  (when (and id (not (empty? id)))
+    (s/split id topic-separator)))
 
 (defn tree-id-parts->tree-id-string
   "Return a string formed by interposing the topic-separator between the
   elements of the input vector."
   [v]
-  (str (s/join topic-separator v)))
+  (when (and v (vector? v) (not (empty? v)))
+    (str (s/join topic-separator v))))
 
-(defn is-top?
+(defn is-top-tree-id?
+  "Return true if tree-id represents to first sibling at the root level of
+  the tree. (This topic is always displayed at the top of the tree -- hence
+  the function name.)"
   [tree-id]
-  (println "is-top?: tree-id: " tree-id)
-  (let [parts (remove-last (tree-id->tree-id-parts tree-id))
-        result (= parts ["root" "0"])]
-    (println "parts: " parts)
-    (println "result: " result)
-    result))
+  (= ["root" "0"] (remove-last (tree-id->tree-id-parts tree-id))))
+
+(defn tree-id->nav-index-vector
+  "Return a vector of the numeric indices in the child vectors from the
+  root to the element id."
+  [tree-id]
+  (-> (tree-id->tree-id-parts tree-id)
+      (remove-last)
+      (remove-first)))
 
 (defn nav-index-vector->tree-id-string
   "Creates a DOM id string from a vector of indices used to navigate to
   the topic. If no id type is specified, the default value of 'topic'
   is used."
   [nav-index-vector & type-to-use]
-  (let [id-type (or type-to-use "topic")
+  (let [id-type (or (first type-to-use) "topic")
         result (str "root" topic-separator
                     (tree-id-parts->tree-id-string nav-index-vector)
                     topic-separator id-type)]
-    (println "result: " result)
     result))
 
 (defn increment-leaf-index
@@ -265,14 +272,6 @@
   (let [parts (tree-id->tree-id-parts id)
         shortened (remove-last parts)]
     (str (tree-id-parts->tree-id-string shortened) (str topic-separator new-type))))
-
-(defn tree-id->nav-index-vector
-  "Return a vector of the numeric indices in the child vectors from the
-  root to the element id."
-  [tree-id]
-  (-> (tree-id->tree-id-parts tree-id)
-      (remove-last)
-      (remove-first)))
 
 (defn tree-id->sortable-nav-string
   "Convert the element id to a string containing the vector indices
@@ -316,7 +315,7 @@
 (defn id-of-parent
   "Return the DOM id (if any) of the parent of the input tree id."
   [tree-id]
-  (when (and tree-id (not (is-top? tree-id)))
+  (when (and tree-id (not (is-top-tree-id? tree-id)))
     (-> tree-id
         tree-id->nav-index-vector
         remove-last
@@ -527,7 +526,7 @@
   [root-ratom evt topic-ratom span-id]
   (when (zero? (count @topic-ratom))
     (.preventDefault evt)
-    (if (is-top? span-id)
+    (if (is-top-tree-id? span-id)
       (when (get-topic root-ratom id-of-second-top-level-topic)
         ; Just delete the top-most headline.
         (println "Pruning top level headline")
