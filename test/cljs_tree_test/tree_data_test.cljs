@@ -45,6 +45,7 @@
                                             {:topic "The Third on Third Level"}
                                             {:topic "The Fourth on Third Level"}
                                             {:topic    "The Real Fifth on Third Level"
+                                             :expanded true
                                              :children [{:topic "Lone Child"}]}]}]}]})
 
 (deftest get-topic-test
@@ -91,3 +92,15 @@
       (is (nil? (ct/has-children? ratom (str "root" ts "1" ts 2 ts 4 ts "topic"))))
       (is (seq (ct/has-children? ratom (str "root" ts "1" ts 2 ts "topic"))))
       (is (seq (ct/has-children? ratom (str "root" ts "2" ts 0 ts 4 ts "topic")))))))
+
+(deftest is-expanded?-test
+  (testing "The 'is-expanded?' function")
+  (let [ratom (r/atom (:tree a-tree))]
+    (is (nil? (ct/is-expanded? ratom (str "root" ts "0" ts "topic"))))
+    (is (thrown? js/Error (ct/is-expanded? ratom nil)))
+    (is (thrown? js/Error (ct/is-expanded? nil (str "root" ts "0" ts "topic"))))
+    (is (true? (ct/is-expanded? ratom (str "root" ts "1" ts "topic"))))
+    (is (nil? (ct/is-expanded? ratom (str "root" ts "1" ts 2 ts 4 ts "topic"))))
+    (is (nil? (ct/is-expanded? ratom (str "root" ts "1" ts 2 ts "topic"))))
+    (is (true? (ct/is-expanded? ratom (str "root" ts "2" ts 0 ts 4 ts "topic"))))))
+

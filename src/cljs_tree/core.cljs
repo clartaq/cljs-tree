@@ -345,8 +345,15 @@
   (get-in @root-ratom (tree-id->tree-path-nav-vector topic-id)))
 
 (defn has-children?
+  "Return the entire vector of children if present, nil otherwise."
   [root-ratom topic-id]
   (:children (get-topic root-ratom topic-id)))
+
+(defn is-expanded?
+  "Return true if the subtree is in the expanded state (implying that it
+  has children). Returns nil if the subtree is not expanded."
+  [root-ratom tree-id]
+  (:expanded (get-topic root-ratom tree-id)))
 
 (defn expand-node
   "Assure that the node is expanded."
@@ -377,12 +384,6 @@
   (let [surrounding-topic-path (tree-id->tree-path-nav-vector topic-id)
         new-nav-vector (into [] (append-element-to-vector surrounding-topic-path :children))]
     (get-in @root-ratom new-nav-vector)))
-
-(defn expanded?
-  "Return true if the subtree is in the expanded state (implying that it
-  has children). Returns nil if the subtree is not expanded."
-  [root-ratom tree-id]
-  (:expanded (get-topic root-ratom tree-id)))
 
 (defn remove-child!
   "Remove the specified child from the parents vector of children."
@@ -458,7 +459,7 @@
   [root-ratom span-id]
   ; If the topic span has children, add a new child in the zero-position
   ; Else add a new sibling below the current topic
-  (let [id-of-new-child (if (expanded? root-ratom span-id)
+  (let [id-of-new-child (if (is-expanded? root-ratom span-id)
                           (insert-child-index-into-parent-id span-id 0)
                           (increment-leaf-index span-id))]
     (graft-topic! root-ratom id-of-new-child empty-test-topic)
