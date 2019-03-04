@@ -359,12 +359,14 @@
   "Assure that the node is expanded."
   [root-ratom tree-id]
   (let [nav-vector (tree-id->tree-path-nav-vector tree-id)
+        _ (println "nav-vector: " nav-vector)
         my-cursor (r/cursor root-ratom nav-vector)]
+    (println "my-cursor: " my-cursor)
+    (println "@my-cursor: " @my-cursor)
     (swap! my-cursor assoc :expanded true)))
 
 (defn collapse-node
-  "Assure that the node is collapsed.
-  THIS HAS NOT BEEN TESTED AT ALL."
+  "Assure that the node is collapsed."
   [root-ratom tree-id]
   (let [nav-vector (tree-id->tree-path-nav-vector tree-id)
         my-cursor (r/cursor root-ratom nav-vector)]
