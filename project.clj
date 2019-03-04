@@ -11,10 +11,10 @@
                  [org.clojure/core.async "0.4.490"]
                  [reagent "0.8.1"]]
 
-  :plugins [[lein-doo "0.1.10"] [lein-figwheel "0.5.16"]
+  :plugins [;[lein-doo "0.1.10"] [lein-figwheel "0.5.16"]
             [lein-cljsbuild "1.1.7" :exclusions [[org.clojure/clojure]]]]
 
-  :aliases {"test-cljs" ["doo" "phantom" "test" "auto"]}
+  ;:aliases {"test-cljs" ["doo" "phantom" "test" "auto"]}
 
   :source-paths ["src"]
   :test-paths ["test"]
