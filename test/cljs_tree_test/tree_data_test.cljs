@@ -104,3 +104,51 @@
     (is (nil? (ct/is-expanded? ratom (str "root" ts "1" ts 2 ts "topic"))))
     (is (true? (ct/is-expanded? ratom (str "root" ts "2" ts 0 ts 4 ts "topic"))))))
 
+(deftest expand-node-test
+  (testing "The 'expand-node' function"
+    ; Make a local copy. Don't mess with the original
+    (let [local-map (:tree a-tree)
+          ratom (r/atom local-map)]
+
+      ; Check that it works for a branch that is not expanded.
+      (let [node-id (str "root" ts 1 ts 2 ts "topic")
+            _ (ct/expand-node ratom node-id)
+            ba (ct/get-topic ratom node-id)]
+        (is (true? (:expanded ba))))
+
+      ; Check that it works for a branch that is already expanded.
+      (let [node-id (str "root" ts 2 ts 0 ts 4 ts "topic")
+            _ (ct/expand-node ratom node-id)
+            ba (ct/get-topic ratom node-id)]
+        (is (true? (:expanded ba))))
+
+      ; Check that it works for a branch that doesn't already have the keyword.
+      (let [node-id (str "root" ts 2 ts 0 ts "topic")
+            _ (ct/expand-node ratom node-id)
+            ba (ct/get-topic ratom node-id)]
+        (is (true? (:expanded ba)))))))
+
+(deftest collapse-node-test
+  (testing "The 'collapse-node' function"
+    ; Make a local copy. Don't mess with the original
+    (let [local-map (:tree a-tree)
+          ratom (r/atom local-map)]
+
+      ; Check that it works for a branch that is already collapsed.
+      (let [node-id (str "root" ts 1 ts 2 ts "topic")
+            _ (ct/collapse-node ratom node-id)
+            ba (ct/get-topic ratom node-id)]
+        (is (nil? (:expanded ba))))
+
+      ; Check that it works for a branch that is expanded.
+      (let [node-id (str "root" ts 2 ts 0 ts 4 ts "topic")
+            _ (ct/collapse-node ratom node-id)
+            ba (ct/get-topic ratom node-id)]
+        (is (nil? (:expanded ba))))
+
+      ; Check that it works for a branch that doesn't already have the keyword.
+      (let [node-id (str "root" ts 2 ts 0 ts "topic")
+            _ (ct/collapse-node ratom node-id)
+            ba (ct/get-topic ratom node-id)]
+        (is (nil? (:expanded ba)))))))
+
