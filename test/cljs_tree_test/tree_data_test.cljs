@@ -152,3 +152,29 @@
             ba (ct/get-topic ratom node-id)]
         (is (nil? (:expanded ba)))))))
 
+(deftest toggle-node-expansion-test
+  (testing "The 'toggle-node-expansion' function"
+    ; Make a local copy. Don't mess with the original
+    (let [local-map (:tree a-tree)
+          ratom (r/atom local-map)]
+
+      ; Check that it works for a branch that is collapsed.
+      (let [node-id (str "root" ts 1 ts 2 ts "topic")
+            _ (ct/toggle-node-expansion ratom node-id)
+            ba (ct/get-topic ratom node-id)]
+        (is (true? (:expanded ba))))
+
+      ; Check that it works for a branch that is expanded.
+      (let [node-id (str "root" ts 2 ts 0 ts 4 ts "topic")
+            _ (println "topic: " (ct/get-topic ratom node-id))
+            _ (ct/toggle-node-expansion ratom node-id)
+            ba (ct/get-topic ratom node-id)]
+        (println "ba: " ba)
+        (is (false? (:expanded ba))))
+
+      ; Check that it works for a branch that doesn't already have the keyword.
+      (let [node-id (str "root" ts 2 ts 0 ts "topic")
+            _ (ct/toggle-node-expansion ratom node-id)
+            ba (ct/get-topic ratom node-id)]
+        (is (nil? (:expanded ba)))))))
+
