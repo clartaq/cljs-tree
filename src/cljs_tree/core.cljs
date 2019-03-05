@@ -361,8 +361,6 @@
   (let [nav-vector (tree-id->tree-path-nav-vector tree-id)
         _ (println "nav-vector: " nav-vector)
         my-cursor (r/cursor root-ratom nav-vector)]
-    (println "my-cursor: " my-cursor)
-    (println "@my-cursor: " @my-cursor)
     (swap! my-cursor assoc :expanded true)))
 
 (defn collapse-node
@@ -373,12 +371,16 @@
     (swap! my-cursor assoc :expanded nil)))
 
 (defn toggle-node-expansion
-  "Toggle the 'expanded' setting for the node.
-  THIS HAS NOT BEEN TESTED AT ALL. WHAT HAPPENS WHEN THE KEY IS NOT PRESENT?"
+  "Toggle the 'expanded' setting for the node. When the branch has no
+  :expanded key, does nothing."
   [root-ratom tree-id]
   (let [nav-vector (tree-id->tree-path-nav-vector tree-id)
         my-cursor (r/cursor root-ratom nav-vector)]
-    (swap! my-cursor update :expanded not)))
+    (println "my-cursor: " my-cursor)
+    (println "@my-cursor: " @my-cursor)
+    (println "(select-keys @my-cursor [:expanded]): " (select-keys @my-cursor [:expanded]))
+    (when (not (empty? (select-keys @my-cursor [:expanded])))
+      (swap! my-cursor update :expanded not))))
 
 (defn get-topic-children
   "If a tree topic has children, return them. Otherwise, return nil."
@@ -771,8 +773,12 @@
       [:div.tree-control--content [tree->hiccup (r/cursor app-state-ratom [:tree])]]
       [add-move-remove-rocks-play-text-button app-state-ratom]]]))
 
-(r/render-component [home test-hierarchy]
-                    (get-element-by-id "app"))
+;(r/render-component [home test-hierarchy]
+;                    (get-element-by-id "app"))
+
+(defn start []
+  (r/render-component [home test-hierarchy]
+                      (get-element-by-id "app")))
 
 (defn on-js-reload []
   ;; optionally touch your app-state to force rerendering depending on
