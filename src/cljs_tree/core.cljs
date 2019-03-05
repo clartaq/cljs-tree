@@ -376,9 +376,6 @@
   [root-ratom tree-id]
   (let [nav-vector (tree-id->tree-path-nav-vector tree-id)
         my-cursor (r/cursor root-ratom nav-vector)]
-    (println "my-cursor: " my-cursor)
-    (println "@my-cursor: " @my-cursor)
-    (println "(select-keys @my-cursor [:expanded]): " (select-keys @my-cursor [:expanded]))
     (when (not (empty? (select-keys @my-cursor [:expanded])))
       (swap! my-cursor update :expanded not))))
 

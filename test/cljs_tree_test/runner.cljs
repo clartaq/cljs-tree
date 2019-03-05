@@ -2,7 +2,8 @@
   (:require [cljs.test :refer-macros [run-tests]]
             [cljs-tree-test.tree-data-test]
             [cljs-tree-test.tree-id-test]
-            [cljs-tree-test.vector-util-test]))
+            [cljs-tree-test.vector-util-test]
+            [doo.runner :refer-macros [doo-tests]]))
 
 (defn run-all-tests
   []
@@ -10,3 +11,6 @@
              'cljs-tree-test.tree-id-test
              'cljs-tree-test.vector-util-test))
 
+(doo-tests 'cljs-tree-test.tree-data-test
+           'cljs-tree-test.tree-id-test
+           'cljs-tree-test.vector-util-test)
