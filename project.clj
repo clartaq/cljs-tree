@@ -33,7 +33,7 @@
                                ;; Comment this out once it no longer serves you.
                                :open-urls ["http://localhost:3449/index.html"]}
 
-                :compiler     {:main                 cljs-tree.core
+                :compiler     {:main                 cljs-tree.main
                                :asset-path           "js/compiled/out"
                                :output-to            "resources/public/js/compiled/cljs_tree.js"
                                :output-dir           "resources/public/js/compiled/out"
