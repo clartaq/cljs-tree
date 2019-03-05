@@ -38,7 +38,7 @@
                                             {:topic "The Third on Third Level"}
                                             {:topic "The Fourth on Third Level"}
                                             {:topic "The Fifth on Third Level"}]}]}
-                    {:topic    "The Last at Top"
+                    {:topic    "The Third at Top"
                      :children [{:topic    "The Only Child of the Last at Top"
                                  :children [{:topic "The First on Third Level"}
                                             {:topic "The Second on Third Level"}
@@ -46,7 +46,8 @@
                                             {:topic "The Fourth on Third Level"}
                                             {:topic    "The Real Fifth on Third Level"
                                              :expanded true
-                                             :children [{:topic "Lone Child"}]}]}]}]})
+                                             :children [{:topic "Lone Child"}]}]}]}
+                    {:topic "The Real Last Top Sibling"}]})
 
 (deftest get-topic-test
   (testing "The 'get-topic' function"
@@ -61,7 +62,7 @@
       (is (= {:topic "The Fifth on Third Level"}
              (ct/get-topic ratom
                            (str "root" ts "1" ts 2 ts 4 ts "topic"))))
-      (is (= "The Last at Top"
+      (is (= "The Third at Top"
              (:topic (ct/get-topic ratom
                                    (str "root" ts 2 ts "topic")))))
       (is (= "The Only Child of the Last at Top"
@@ -106,7 +107,7 @@
 
 (deftest expand-node-test
   (testing "The 'expand-node' function"
-    ; Make a local copy. Don't mess with the original
+    ; Make a local copy. Don't mess with the original.
     (let [local-map (:tree a-tree)
           ratom (r/atom local-map)]
 
@@ -130,7 +131,7 @@
 
 (deftest collapse-node-test
   (testing "The 'collapse-node' function"
-    ; Make a local copy. Don't mess with the original
+    ; Make a local copy. Don't mess with the original.
     (let [local-map (:tree a-tree)
           ratom (r/atom local-map)]
 
@@ -154,7 +155,7 @@
 
 (deftest toggle-node-expansion-test
   (testing "The 'toggle-node-expansion' function"
-    ; Make a local copy. Don't mess with the original
+    ; Make a local copy. Don't mess with the original.
     (let [local-map (:tree a-tree)
           ratom (r/atom local-map)]
 
@@ -178,3 +179,32 @@
             ba (ct/get-topic ratom node-id)]
         (is (nil? (:expanded ba)))))))
 
+(deftest remove-top-level-sibling!-test
+  (testing "The 'remove-top-level-sibling!' function.")
+  ; Make a local copy. Don't mess with the original.
+  (let [local-map (:tree a-tree)
+        ratom (r/atom local-map)
+        org-topic-cnt (count local-map)]
+
+    ; Check behavior when the index is out of bounds.
+    (is (thrown? js/Error (ct/remove-top-level-sibling! ratom -1)))
+    (is (thrown? js/Error (ct/remove-top-level-sibling! ratom 4500)))
+
+    ; Check behavior when deleting first sibling (top topic).
+    (let [top-id (str "root" ts 0 ts "topic")
+          top-topic-txt (:topic (ct/get-topic ratom top-id))
+          _ (ct/remove-top-level-sibling! ratom 0)
+          new-top-topic-txt (:topic (ct/get-topic ratom top-id))]
+      (is (not= top-topic-txt new-top-topic-txt))
+      ; ASSUMES DELETION WORKED.
+      (is (= (count @ratom) (dec org-topic-cnt))))
+
+    ; Check behavior of deleting last sibling. ASSUMES PREVIOUS
+    ; TEST WORKED.
+    (let [last-topic-id (str "root" ts 2 ts "anything")
+          last-topic-txt (:topic (ct/get-topic ratom last-topic-id))
+          _ (ct/remove-top-level-sibling! ratom 2)
+          new-last-topic-id (str "root" ts 1 ts "something")
+          new-last-topic-txt (:topic (ct/get-topic ratom new-last-topic-id))]
+      (is (not= last-topic-txt new-last-topic-txt))
+      (is (= (count @ratom) (- org-topic-cnt 2))))))
