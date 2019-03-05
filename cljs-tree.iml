@@ -11,6 +11,7 @@
       <sourceFolder url="file://$MODULE_DIR$/dev" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/test" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/resources/public/js/compiled" />
+      <excludeFolder url="file://$MODULE_DIR$/resources/public/js/test" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />
