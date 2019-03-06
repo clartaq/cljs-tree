@@ -401,12 +401,9 @@
   copy of the branch with the child removed or nil if there was a problem
   with the arguments."
   [parent-ratom child-index]
-  (println "remove-child!: @parent-ratom: " @parent-ratom ", child-index: " child-index)
-  (println "(type parent-ratom): " (type parent-ratom))
   (when (or (instance? reagent.ratom/RAtom parent-ratom)
             (instance? reagent.ratom/RCursor parent-ratom))
     (let [vector-of-children (:children @parent-ratom)]
-      (println "vector-of-children: " vector-of-children)
       (when (and vector-of-children
                  (vector? vector-of-children)
                  (>= child-index 0)
