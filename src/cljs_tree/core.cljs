@@ -312,14 +312,14 @@
         interposed (interpose :children index-vector)]
     {:path-to-parent (vec interposed) :child-index idx}))
 
-(defn id-of-parent
-  "Return the DOM id (if any) of the parent of the input tree id."
-  [tree-id]
-  (when (and tree-id (not (is-top-tree-id? tree-id)))
-    (-> tree-id
-        tree-id->nav-index-vector
-        remove-last
-        nav-index-vector->tree-id-string)))
+;(defn id-of-parent
+;  "Return the DOM id (if any) of the parent of the input tree id."
+;  [tree-id]
+;  (when (and tree-id (not (is-top-tree-id? tree-id)))
+;    (-> tree-id
+;        tree-id->nav-index-vector
+;        remove-last
+;        nav-index-vector->tree-id-string)))
 
 ;;------------------------------------------------------------------------------
 ;; Functions to manipulate the tree and subtrees.
@@ -379,32 +379,37 @@
     (when (not (empty? (select-keys @my-cursor [:expanded])))
       (swap! my-cursor update :expanded not))))
 
-(defn get-topic-children
-  "If a tree topic has children, return them. Otherwise, return nil."
-  [root-ratom topic-id]
-  (let [surrounding-topic-path (tree-id->tree-path-nav-vector topic-id)
-        new-nav-vector (into [] (append-element-to-vector surrounding-topic-path :children))]
-    (get-in @root-ratom new-nav-vector)))
+;(defn get-topic-children
+;  "If a tree topic has children, return them. Otherwise, return nil."
+;  [root-ratom topic-id]
+;  (let [surrounding-topic-path (tree-id->tree-path-nav-vector topic-id)
+;        new-nav-vector (into [] (append-element-to-vector surrounding-topic-path :children))]
+;    (get-in @root-ratom new-nav-vector)))
+
+(defn remove-top-level-sibling!
+  "Remove one of the top level topics from the tree."
+  [root-ratom sibling-index]
+  (when (and (instance? reagent.ratom/RAtom root-ratom)
+             (vector @root-ratom)
+             (>= sibling-index 0)
+             (< sibling-index (count @root-ratom)))
+    (swap! root-ratom delete-at sibling-index)))
 
 (defn remove-child!
   "Remove the specified child from the parents vector of children."
   [parent-ratom child-index]
   (println "remove-child!: @parent-ratom: " @parent-ratom ", child-index: " child-index)
-  (let [vector-of-children (:children @parent-ratom)]
-    (println "vector-of-children: " vector-of-children)
-    (when (and vector-of-children
-               (>= child-index 0)
-               (< child-index (count vector-of-children)))
-      (let [new-child-vector (delete-at vector-of-children child-index)]
-        (if (empty? new-child-vector)
-          (swap! parent-ratom dissoc :children)
-          (swap! parent-ratom assoc :children new-child-vector))))))
-
-(defn remove-top-level-sibling!
-  "Remove one of the top level topics from the tree."
-  [root-ratom sibling-index]
-  (println "remove-top-level-sibling!: sibling-index: " sibling-index)
-  (swap! root-ratom delete-at sibling-index))
+  (when (instance? reagent.ratom/RAtom parent-ratom)
+    (let [vector-of-children (:children @parent-ratom)]
+      (println "vector-of-children: " vector-of-children)
+      (when (and vector-of-children
+                 (vector? vector-of-children)
+                 (>= child-index 0)
+                 (< child-index (count vector-of-children)))
+        (let [new-child-vector (delete-at vector-of-children child-index)]
+          (if (empty? new-child-vector)
+            (swap! parent-ratom dissoc :children)
+            (swap! parent-ratom assoc :children new-child-vector)))))))
 
 (defn prune-topic!
   "Remove the subtree with the given id from the tree."

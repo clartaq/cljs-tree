@@ -186,9 +186,15 @@
         ratom (r/atom local-map)
         org-topic-cnt (count local-map)]
 
+    ; Assure that faulty tree arguments are caught.
+    (is (nil? (ct/remove-top-level-sibling! nil 0)))
+    (is (nil? (ct/remove-top-level-sibling! (r/atom "") 0)))
+    (is (nil? (ct/remove-top-level-sibling! (atom {}) 0)))
+    (is (nil? (ct/remove-top-level-sibling! [] 0)))
+
     ; Check behavior when the index is out of bounds.
-    (is (thrown? js/Error (ct/remove-top-level-sibling! ratom -1)))
-    (is (thrown? js/Error (ct/remove-top-level-sibling! ratom 4500)))
+    (is (nil? (ct/remove-top-level-sibling! ratom -1)))
+    (is (nil? (ct/remove-top-level-sibling! ratom 4500)))
 
     ; Check behavior when deleting first sibling (top topic).
     (let [top-id (str "root" ts 0 ts "topic")
@@ -208,3 +214,22 @@
           new-last-topic-txt (:topic (ct/get-topic ratom new-last-topic-id))]
       (is (not= last-topic-txt new-last-topic-txt))
       (is (= (count @ratom) (- org-topic-cnt 2))))))
+
+
+(deftest remove-child!-test
+  (testing "The 'remove-child!' function.")
+  ; Make a local copy. Don't mess with the original.
+  (let [local-map (:tree a-tree)
+        ratom (r/atom local-map)]
+
+    ; Assure that faulty tree arguments are caught.
+    (is (nil? (ct/remove-top-level-sibling! nil 0)))
+    (is (nil? (ct/remove-top-level-sibling! (r/atom "") 0)))
+    (is (nil? (ct/remove-top-level-sibling! (atom {}) 0)))
+    (is (nil? (ct/remove-top-level-sibling! [] 0)))
+
+    ; Check behavior when the index is out of bounds.
+    (is (nil? (ct/remove-child! ratom -1)))
+    (is (nil? (ct/remove-child! ratom 4500)))
+
+    ))
