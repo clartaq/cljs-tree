@@ -678,8 +678,11 @@
   to re-render visually."
   [evt root-ratom]
   (let [ele-id (event->target-id evt)
+        _ (println "ele-id: " ele-id)
         kwv (tree-id->tree-path-nav-vector ele-id)
+        _ (println "kwv: " kwv)
         ekwv (conj kwv :expanded)]
+    (println "ekwv: " ekwv)
     (swap! root-ratom update-in ekwv not)))
 
 (defn build-chevron
@@ -688,7 +691,8 @@
   are expanded or not."
   [root-ratom t id-prefix]
   (let [clickable-chevron {:class    "tree-control--expansion-span"
-                           :id       (str id-prefix topic-separator "chevron")
+                           :id       (tree-id-parts->tree-id-string
+                                       (conj id-prefix "chevron"))
                            :on-click #(handle-chevron-click! % root-ratom)
                            :cursor   "pointer"}
         invisible-chevron {:class "tree-control--expansion-span"
