@@ -678,11 +678,8 @@
   to re-render visually."
   [evt root-ratom]
   (let [ele-id (event->target-id evt)
-        _ (println "ele-id: " ele-id)
         kwv (tree-id->tree-path-nav-vector ele-id)
-        _ (println "kwv: " kwv)
         ekwv (conj kwv :expanded)]
-    (println "ekwv: " ekwv)
     (swap! root-ratom update-in ekwv not)))
 
 (defn build-chevron
