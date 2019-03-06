@@ -735,10 +735,10 @@
   application state can be located when its corresponding HTML element is
   clicked."
   ([root-ratom]
-   (tree->hiccup root-ratom root-ratom "root"))
+   (tree->hiccup root-ratom root-ratom ["root"]))
   ([root-ratom sub-tree-ratom path-so-far]
    [:ul
-    (when (= path-so-far "root")
+    (when (= path-so-far ["root"])
       ; Make sure the top-level group of elements use the CSS to represent
       ; it as an hierarchy.
       {:class "tree-control--list"
@@ -748,9 +748,13 @@
         [index (range (count @sub-tree-ratom))]
         (let [t (r/cursor sub-tree-ratom [index])
               topic-ratom (r/cursor t [:topic])
-              id-prefix (str path-so-far topic-separator index)
-              topic-id (str id-prefix topic-separator "topic")
-              span-id (str id-prefix topic-separator "span")]
+              id-prefix (conj path-so-far index) ;(str path-so-far topic-separator index)
+              _ (println "id-prefix: " id-prefix)
+              topic-id (tree-id-parts->tree-id-string (conj id-prefix "topic")) ;(str id-prefix topic-separator "topic")
+              _ (println "topic-id: " topic-id)
+              span-id (tree-id-parts->tree-id-string (conj id-prefix "span")) ;(str id-prefix topic-separator "span")]
+              _ (println "span-id: " span-id)
+              ]
           ^{:key topic-id}
           [:li {:id topic-id}
            [:div.tree-control--topic-div
