@@ -359,7 +359,6 @@
   "Assure that the node is expanded."
   [root-ratom tree-id]
   (let [nav-vector (tree-id->tree-path-nav-vector tree-id)
-        _ (println "nav-vector: " nav-vector)
         my-cursor (r/cursor root-ratom nav-vector)]
     (swap! my-cursor assoc :expanded true)))
 
@@ -387,7 +386,9 @@
 ;    (get-in @root-ratom new-nav-vector)))
 
 (defn remove-top-level-sibling!
-  "Remove one of the top level topics from the tree."
+  "Remove one of the top level topics from the tree. Return a copy of the
+  branch with the sibling removed or nil if there was a problem with the
+  arguments."
   [root-ratom sibling-index]
   (when (and (instance? reagent.ratom/RAtom root-ratom)
              (vector @root-ratom)
@@ -396,10 +397,14 @@
     (swap! root-ratom delete-at sibling-index)))
 
 (defn remove-child!
-  "Remove the specified child from the parents vector of children."
+  "Remove the specified child from the parents vector of children. Return a
+  copy of the branch with the child removed or nil if there was a problem
+  with the arguments."
   [parent-ratom child-index]
   (println "remove-child!: @parent-ratom: " @parent-ratom ", child-index: " child-index)
-  (when (instance? reagent.ratom/RAtom parent-ratom)
+  (println "(type parent-ratom): " (type parent-ratom))
+  (when (or (instance? reagent.ratom/RAtom parent-ratom)
+            (instance? reagent.ratom/RCursor parent-ratom))
     (let [vector-of-children (:children @parent-ratom)]
       (println "vector-of-children: " vector-of-children)
       (when (and vector-of-children

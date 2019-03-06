@@ -167,10 +167,8 @@
 
       ; Check that it works for a branch that is expanded.
       (let [node-id (ct/tree-id-parts->tree-id-string ["root"  2 0 4 "topic"])
-            _ (println "topic: " (ct/get-topic ratom node-id))
             _ (ct/toggle-node-expansion ratom node-id)
             ba (ct/get-topic ratom node-id)]
-        (println "ba: " ba)
         (is (false? (:expanded ba))))
 
       ; Check that it works for a branch that doesn't already have the keyword.
@@ -232,4 +230,22 @@
     (is (nil? (ct/remove-child! ratom -1)))
     (is (nil? (ct/remove-child! ratom 4500)))
 
-    ))
+    ; Check that removing a child with siblings works.
+    (let [parent-id (ct/tree-id-parts->tree-id-string ["root" 1 2 "topic"])
+          parent-cursor (r/cursor ratom (ct/tree-id->tree-path-nav-vector parent-id))
+          child-index 2
+          count-before (count (:children (ct/get-topic ratom parent-id)))
+          _ (ct/remove-child! parent-cursor child-index)
+          count-after (count (:children (ct/get-topic ratom parent-id)))]
+      (is (= count-after (dec count-before))))
+
+    ; Check that removing the only child works.
+    (let [parent-id (ct/tree-id-parts->tree-id-string ["root" 2 0 4 "topic"])
+          parent-cursor (r/cursor ratom (ct/tree-id->tree-path-nav-vector parent-id))
+          child-index 0
+          count-before (count (:children (ct/get-topic ratom parent-id)))
+          _ (ct/remove-child! parent-cursor child-index)
+          count-after (count (:children (ct/get-topic ratom parent-id)))]
+      (is (= count-after (dec count-before)))
+      (is (nil? (ct/get-topic ratom (ct/tree-id-parts->tree-id-string
+                                      ["root" 2 0 4 0 "topic"])))))))
