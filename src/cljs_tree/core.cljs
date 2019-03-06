@@ -751,13 +751,9 @@
         [index (range (count @sub-tree-ratom))]
         (let [t (r/cursor sub-tree-ratom [index])
               topic-ratom (r/cursor t [:topic])
-              id-prefix (conj path-so-far index) ;(str path-so-far topic-separator index)
-              _ (println "id-prefix: " id-prefix)
-              topic-id (tree-id-parts->tree-id-string (conj id-prefix "topic")) ;(str id-prefix topic-separator "topic")
-              _ (println "topic-id: " topic-id)
-              span-id (tree-id-parts->tree-id-string (conj id-prefix "span")) ;(str id-prefix topic-separator "span")]
-              _ (println "span-id: " span-id)
-              ]
+              id-prefix (conj path-so-far index)
+              topic-id (tree-id-parts->tree-id-string (conj id-prefix "topic"))
+              span-id (tree-id-parts->tree-id-string (conj id-prefix "span"))]
           ^{:key topic-id}
           [:li {:id topic-id}
            [:div.tree-control--topic-div
@@ -781,9 +777,6 @@
        [:code "tree->hiccup"] ":"]
       [:div.tree-control--content [tree->hiccup (r/cursor app-state-ratom [:tree])]]
       [add-move-remove-rocks-play-text-button app-state-ratom]]]))
-
-;(r/render-component [home test-hierarchy]
-;                    (get-element-by-id "app"))
 
 (defn start []
   (r/render-component [home test-hierarchy]
