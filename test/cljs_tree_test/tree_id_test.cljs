@@ -1,6 +1,3 @@
-;;;-----------------------------------------------------------------------------
-;;; Tests of tree identifier manipulation and conversions.
-
 (ns ^:figwheel-always cljs-tree-test.tree-id-test
   (:require [cljs-tree.core :as ct]
             [cljs.test :refer-macros [deftest is testing]]))

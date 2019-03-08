@@ -344,7 +344,7 @@
   [root-ratom topic-id]
   (get-in @root-ratom (tree-id->tree-path-nav-vector topic-id)))
 
-(defn has-children?
+(defn has-children
   "Return the entire vector of children if present, nil otherwise."
   [root-ratom topic-id]
   (:children (get-topic root-ratom topic-id)))
@@ -414,7 +414,8 @@
             (swap! parent-ratom assoc :children new-child-vector)))))))
 
 (defn prune-topic!
-  "Remove the subtree with the given id from the tree."
+  "Remove the subtree with the given id from the tree. If the last child
+  is deleted, the subtree is marked as having no children."
   [root-ratom id-of-existing-subtree]
   (let [path-and-index (tree-id->nav-vector-and-index id-of-existing-subtree)
         parent-nav-index-vector (:path-to-parent path-and-index)
@@ -484,37 +485,23 @@
   tree id is the first (zero'th) in a group of siblings."
   [current-sibling-id]
   (let [parts (tree-id->tree-id-parts current-sibling-id)
-        _ (println "parts: " parts)
-        last-path-index (int (nth parts (- (count parts) 2)))
-        _ (println "last-path-index: " last-path-index)]
+        last-path-index (int (nth parts (- (count parts) 2)))]
     (when (pos? last-path-index)
       (tree-id-parts->tree-id-string
         (into (remove-last-two parts) [(dec last-path-index) "topic"])))))
 
 (defn id-of-last-visible-child
-  "Return the last visible child of the branch starting at tree-id. The last
-  visible child may be many levels deeper in the tree."
+  "Return the id of the last visible child of the branch starting at tree-id.
+  The last visible child may be many levels deeper in the tree."
   [root-ratom tree-id]
-  (println "id-of-last-visible-child: tree-id: " tree-id)
-  (let [id-prefix-parts (remove-last (tree-id->tree-id-parts tree-id))
-        _ (println "id-prefix-parts: " id-prefix-parts)
-        starting-id (tree-id-parts->tree-id-string id-prefix-parts)
-        _ (println "starting-id: " starting-id)
-        last-id (loop [id-so-far tree-id
-                       topic-map (get-topic root-ratom id-so-far)]
-                  (if (not (and (:expanded topic-map) (:children topic-map)))
-                    id-so-far
-                    (let [next-child-vector (:children topic-map)
-                          _ (println "next-child-vector: " next-child-vector)
-                          _ (println "(count next-child-vector): " (count next-child-vector))
-                          next-index (dec (count next-child-vector))
-                          _ (println "next-index: " next-index)
-                          next-id (insert-child-index-into-parent-id id-so-far next-index) ;(str id-so-far topic-separator next-index)
-                          _ (println "next-id: " next-id)]
-                      (recur next-id next-child-vector))))
-        ]
-    (println "id-of-last-visible-child: last-id: " last-id)
-    last-id))
+  (loop [id-so-far tree-id
+         topic-map (get-topic root-ratom id-so-far)]
+    (if (not (and (:expanded topic-map) (:children topic-map)))
+      id-so-far
+      (let [next-child-vector (:children topic-map)
+            next-index (dec (count next-child-vector))
+            next-id (insert-child-index-into-parent-id id-so-far next-index)]
+        (recur next-id next-child-vector)))))
 
 (defn focus-editor-for-id
   "Focus the editor associated with the id. Assumes the topic is visible and
@@ -553,9 +540,7 @@
           (do
             (println "last-visible-child-branch")
             (focus-editor-for-id
-              (id-of-last-visible-child root-ratom (id-of-previous-sibling span-id))))
-          ;(id-of-parent span-id)
-          )))))
+              (id-of-last-visible-child root-ratom (id-of-previous-sibling span-id)))))))))
 
 (defn promote-headline
   [root-ratom evt topic-ratom span-id]
@@ -565,7 +550,7 @@
   [root-ratom evt topic-ratom span-id]
   (println "demote-headline")
   (println "(id-of-previous-sibling span-id): " (id-of-previous-sibling span-id))
-  (if (has-children? root-ratom (id-of-previous-sibling span-id))
+  (if (has-children root-ratom (id-of-previous-sibling span-id))
     (println "Has children")
     (println "Has NO children"))
   (when-let [previous-sibling (id-of-previous-sibling span-id)]
@@ -751,9 +736,13 @@
         [index (range (count @sub-tree-ratom))]
         (let [t (r/cursor sub-tree-ratom [index])
               topic-ratom (r/cursor t [:topic])
-              id-prefix (conj path-so-far index)
-              topic-id (tree-id-parts->tree-id-string (conj id-prefix "topic"))
-              span-id (tree-id-parts->tree-id-string (conj id-prefix "span"))]
+              id-prefix (conj path-so-far index)            ;(str path-so-far topic-separator index)
+              _ (println "id-prefix: " id-prefix)
+              topic-id (tree-id-parts->tree-id-string (conj id-prefix "topic")) ;(str id-prefix topic-separator "topic")
+              _ (println "topic-id: " topic-id)
+              span-id (tree-id-parts->tree-id-string (conj id-prefix "span")) ;(str id-prefix topic-separator "span")]
+              _ (println "span-id: " span-id)
+              ]
           ^{:key topic-id}
           [:li {:id topic-id}
            [:div.tree-control--topic-div
@@ -777,6 +766,9 @@
        [:code "tree->hiccup"] ":"]
       [:div.tree-control--content [tree->hiccup (r/cursor app-state-ratom [:tree])]]
       [add-move-remove-rocks-play-text-button app-state-ratom]]]))
+
+;(r/render-component [home test-hierarchy]
+;                    (get-element-by-id "app"))
 
 (defn start []
   (r/render-component [home test-hierarchy]
