@@ -256,29 +256,49 @@
           ratom (r/atom local-map)]
 
       ; Non-existent top level sibling.
-      (is (nil? (ct/prune-topic! ratom (ct/tree-id-parts->tree-id-string ["root" 37 "blah-blah"]))))
+      (is (nil? (ct/prune-topic! ratom (ct/tree-id-parts->tree-id-string
+                                         ["root" 37 "blah-blah"]))))
       ; Non-existent child.
-      (is (nil? (ct/prune-topic! ratom (ct/tree-id-parts->tree-id-string ["root" 0 5 "blah-blah"]))))
+      (is (nil? (ct/prune-topic! ratom (ct/tree-id-parts->tree-id-string
+                                         ["root" 0 5 "blah-blah"]))))
       ;Child out of range.
-      (is (nil? (ct/prune-topic! ratom (ct/tree-id-parts->tree-id-string ["root" 1 37 "blah-blah"]))))
+      (is (nil? (ct/prune-topic! ratom (ct/tree-id-parts->tree-id-string
+                                         ["root" 1 37 "blah-blah"]))))
 
 
       ; Remove a top level sibling.
       (let [count-before (count @ratom)]
-        (ct/prune-topic! ratom (ct/tree-id-parts->tree-id-string ["root" 3 "blah-blah"]))
+        (ct/prune-topic! ratom (ct/tree-id-parts->tree-id-string
+                                 ["root" 3 "blah-blah"]))
         (is (= (dec count-before) (count @ratom))))
 
       ; Assure that deleting the only child also marks the topic as having
       ; no children.
-      (let [id-to-prune (ct/tree-id-parts->tree-id-string ["root" 2 0 4 0 "blah-blah"])
+      (let [id-to-prune (ct/tree-id-parts->tree-id-string
+                          ["root" 2 0 4 0 "blah-blah"])
             retval (ct/prune-topic! ratom id-to-prune)]
-        (println "retval: " retval)
         (is (= "The Real Fifth on Third Level" (:topic retval)))
         (is (nil? (ct/has-children ratom id-to-prune))))
 
+      ; Delete multiple times in the same group of siblings
+      (let [first-id-to-prune (ct/tree-id-parts->tree-id-string
+                                ["root" 1 2 3 "blah-blah"])
+            second-id-to-prune (ct/tree-id-parts->tree-id-string
+                                 ["root" 1 2 0 "blah-blah"])]
 
+        ; Delete next to last sibling.
+        (ct/prune-topic! ratom first-id-to-prune)
+        (is (= "The Fifth on Third Level" (:topic (ct/get-topic
+                                                    ratom first-id-to-prune))))
 
-      )))
+        ; Delete the last sibling.
+        (ct/prune-topic! ratom first-id-to-prune)
+        (is (nil? (ct/get-topic ratom first-id-to-prune)))
+
+        ; Delete first sibling.
+        (ct/prune-topic! ratom second-id-to-prune)
+        (is (= "The Second on Third Level" (:topic (ct/get-topic
+                                                     ratom second-id-to-prune))))))))
 
 (deftest id-of-previous-sibling-test
   (testing "The 'id-of-previous-sibling' function."

@@ -387,8 +387,8 @@
 
 (defn remove-top-level-sibling!
   "Remove one of the top level topics from the tree. Return a copy of the
-  branch with the sibling removed or nil if there was a problem with the
-  arguments."
+  branch (entire tree) with the sibling removed or nil if there was a problem
+  with the arguments."
   [root-ratom sibling-index]
   (when (and (instance? reagent.ratom/RAtom root-ratom)
              (vector @root-ratom)
@@ -416,6 +416,8 @@
 (defn prune-topic!
   "Remove the subtree with the given id from the tree. If the last child
   is deleted, the subtree is marked as having no children."
+  ; THE RETURN VALUE IS INCONSISTENT HERE DEPENDING ON WHETHER A TOP LEVEL
+  ; ITEM IS DELETED OR ONE LOWER IN THE TREE.
   [root-ratom id-of-existing-subtree]
   (let [path-and-index (tree-id->nav-vector-and-index id-of-existing-subtree)
         parent-nav-index-vector (:path-to-parent path-and-index)
