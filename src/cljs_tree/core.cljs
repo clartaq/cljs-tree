@@ -6,14 +6,12 @@
 (ns cljs-tree.core
   (:require
     ;[cljs.pprint :as ppr]
-    [clojure.string :as s]
-    ;[clojure.walk :as w]
-    [reagent.core :as r]
-    ;[clojure.string :as string]
-    [cljs.reader :as reader]
+    ;[cljs.reader :as reader]
     [cljs-tree.vector-utils :refer [delete-at remove-first remove-last
                                     remove-last-two insert-at replace-at
-                                    append-element-to-vector]]))
+                                    append-element-to-vector]]
+    [clojure.string :as s]
+    [reagent.core :as r]))
 
 (enable-console-print!)
 
@@ -23,7 +21,7 @@
 ; A character that is unlikely to be typed in normal operation. In this case,
 ; it is a half triangular colon modifier character. Used as a separator when
 ; building path strings through the hierarchy.
-(def ^{:constant true} topic-separator \space) ;\u02D1)
+(def ^{:constant true} topic-separator \u02D1)
 ;(def ^{:constant true} topic-separator-v \space)
 
 (def id-of-first-top-level-topic (str "root" topic-separator 0 topic-separator "topic"))
@@ -182,13 +180,14 @@
 (defn swap-style-property
   "Swap the specified style settings for the two elements."
   [first-id second-id property]
-  (println "first-id: " first-id ", second-id: " second-id)
+  ;(println "first-id: " first-id ", second-id: " second-id)
+  ;(println "first-ele: " (get-element-by-id first-id) ", second-ele: " (get-element-by-id second-id))
   (let [style-declaration-of-first (.-style (get-element-by-id first-id))
         style-declaration-of-second (.-style (get-element-by-id second-id))
         value-of-first (.getPropertyValue style-declaration-of-first property)
         value-of-second (.getPropertyValue style-declaration-of-second property)]
-    (println "value of first: " value-of-first)
-    (println "value-of-second: " value-of-second)
+    ;(println "value of first: " value-of-first)
+    ;(println "value-of-second: " value-of-second)
     (.setProperty style-declaration-of-first property value-of-second)
     (.setProperty style-declaration-of-second property value-of-first)))
 
@@ -272,12 +271,12 @@
   [tree-id]
   (s/join "-" (tree-id->nav-index-vector tree-id)))
 
-(defn tree-id->sortable-nav-string-v
-  "Convert the element id to a string containing the vector indices
-  separated by a hyphen and return it. Result can be used to lexicographically
-  determine if one element is 'higher' or 'lower' than another in the tree."
-  [tree-id]
-  (s/join "-" (tree-id->nav-index-vector-v tree-id)))
+;(defn tree-id->sortable-nav-string-v
+;  "Convert the element id to a string containing the vector indices
+;  separated by a hyphen and return it. Result can be used to lexicographically
+;  determine if one element is 'higher' or 'lower' than another in the tree."
+;  [tree-id]
+;  (s/join "-" (tree-id->nav-index-vector-v tree-id)))
 
 (defn increment-leaf-index
   "Given the tree id of a leaf node, return an id with the node index
@@ -296,10 +295,10 @@
         shortened (remove-last parts)]
     (str (tree-id-parts->tree-id-string shortened) (str topic-separator new-type))))
 
-(defn change-tree-id-type-v
-  "Change the 'type' of a tree DOM element id to something else."
-  [id new-type]
-  (conj (remove-last id) new-type))
+;(defn change-tree-id-type-v
+;  "Change the 'type' of a tree DOM element id to something else."
+;  [id new-type]
+;  (conj (remove-last id) new-type))
 
 (defn insert-child-index-into-parent-id
   "Return a new id where the index of the child in the parents children vector
@@ -319,11 +318,11 @@
         interposed (interpose :children nav-vector)]
     (vec interposed)))
 
-(defn tree-id->tree-path-nav-vector-v
-  "Return a vector of indices and keywords to navigate to the piece of data
-  represented by the DOM element with the given id."
-  [tree-id]
-  (mapv reader/read-string (tree-id->nav-index-vector-v tree-id)))
+;(defn tree-id->tree-path-nav-vector-v
+;  "Return a vector of indices and keywords to navigate to the piece of data
+;  represented by the DOM element with the given id."
+;  [tree-id]
+;  (mapv reader/read-string (tree-id->nav-index-vector-v tree-id)))
 
 (defn tree-id->nav-vector-and-index
   "Parse the id into a navigation path vector to the parent of the node and an
@@ -692,7 +691,8 @@
   to re-render visually."
   [evt root-ratom]
   (let [ele-id (event->target-id evt)
-        _ (println "ele-id: " ele-id)]
+        ;_ (println "chevron-click: ele-id: " ele-id)
+        ]
     (if (s/starts-with? ele-id "root")
       (do
         (let [kwv (tree-id->tree-path-nav-vector ele-id)
@@ -707,13 +707,13 @@
           (swap! root-ratom update-in ekwv not)
           ))
       (do
-        (let [kwvv (tree-id->tree-path-nav-vector-v ele-id)
-              ;_ (println "kwvv: " kwvv)
-              ;        _ (println "(type kwvv): " (type kwvv))
+        (let [kwvv (tree-id->tree-path-nav-vector ele-id)
+              _ (println "kwvv: " kwvv)
+              _ (println "(type kwvv): " (type kwvv))
               ekwvv (conj kwvv :expanded)
-              ;_ (println "(type ekwvv): " (type ekwvv))
-              ;_ (println "(type (first ekwvv)): " (type (first ekwvv))
-              ;           ", (type (second ekwvv)): " (type (second ekwvv)))
+              _ (println "(type ekwvv): " (type ekwvv))
+              _ (println "(type (first ekwvv)): " (type (first ekwvv))
+                         ", (type (second ekwvv)): " (type (second ekwvv)))
               ]
           (swap! root-ratom update-in ekwvv not))))))
 
@@ -742,18 +742,18 @@
 (defn build-topic-span
   "Build the textual part of a topic/headline."
   [root-ratom sub-tree-ratom span-id]
-  (println "span-id: " span-id)
+  ;(println "span-id: " span-id)
   (let [topic-ratom (r/cursor sub-tree-ratom [:topic])
         label-id (change-tree-id-type span-id "label")
         editor-id (change-tree-id-type span-id "editor")]
-    (println "label-id: " label-id)
-    (println "editor-id: " editor-id)
+   ; (println "label-id: " label-id)
+   ; (println "editor-id: " editor-id)
     [:span.tree-control--topic
 
      [:label {:id          label-id
               :style       {:display :initial}
               :class       "tree-control--topic-label"
-              :onMouseOver #(println "id: " span-id ", label-id: " label-id ", editor-id: " editor-id)
+              ;:onMouseOver #(println "id: " span-id ", label-id: " label-id ", editor-id: " editor-id)
               :onClick     (fn [e]
                              (swap-display-properties label-id editor-id)
                              (.focus (get-element-by-id editor-id))
@@ -770,65 +770,94 @@
               :onChange  #(reset! topic-ratom (event->target-value %))
               :value     @topic-ratom}]]))
 
-(defn new-tree->hiccup
+;(defn new-tree->hiccup
+;  "Generate a hiccup representation of the tree data structure."
+;  [root-ratom subtree-ratom indices-so-far]
+;  [:ul
+;   (when (empty? indices-so-far)
+;     {:class "tree-control--list"})
+;   (map-indexed (fn [vector-index ele]
+;                  (let [rc (r/cursor subtree-ratom [vector-index])
+;                        indices (conj indices-so-far vector-index)
+;                        _ (println "indices: " indices)
+;                        topic-id-vec (tree-id-parts->tree-id-string (conj indices "topic"))
+;                        _ (println "topic-id-vec: " topic-id-vec)
+;                        span-id-vec (change-tree-id-type topic-id-vec "span")]
+;                    (println "span-id-c-vec: " span-id-vec)
+;                    ^{:key topic-id-vec}
+;                    [:li {:id topic-id-vec}
+;                     [:div.tree-control--topic-div
+;                      [build-chevron root-ratom rc indices]
+;                      [build-topic-span root-ratom rc span-id-vec]
+;                      (when (and (:children ele) (:expanded ele))
+;                        [new-tree->hiccup root-ratom (r/cursor rc [:children]) indices])]]))
+;                @subtree-ratom)])
+
+(defn newer-tree->hiccup
   "Generate a hiccup representation of the tree data structure."
-  [root-ratom subtree-ratom indices-so-far]
+  [root-ratom subtree-ratom path-so-far]
   [:ul
-   (when (empty? indices-so-far)
+   (when (= path-so-far ["root"])
      {:class "tree-control--list"})
    (map-indexed (fn [vector-index ele]
-                  (let [rc (r/cursor subtree-ratom [vector-index])
-                        indices (conj indices-so-far vector-index :children)
-                        topic-id-vec (conj indices "topic")
-                        _ (println "topic-id-vec: " topic-id-vec)
-                        span-id-vec (change-tree-id-type-v topic-id-vec "span")]
-                    (println "span-id-c-vec: " span-id-vec)
-                    ^{:key topic-id-vec}
-                    [:li {:id topic-id-vec}
+                  (let [t (r/cursor subtree-ratom [vector-index])
+                        id-prefix (conj path-so-far vector-index)
+                       ; _ (println "newer id-prefix: " id-prefix)
+                        topic-id (tree-id-parts->tree-id-string (conj id-prefix "topic"))
+                        span-id (change-tree-id-type topic-id "span")
+                        ; indices (conj path-so-far vector-index)
+                       ; _ (println "newer indices: " indices)
+                        ;topic-id-vec (tree-id-parts->tree-id-string (conj indices "topic"))
+                        ; _ (println "topic-id-vec: " topic-id-vec)
+                        ;span-id-vec (change-tree-id-type topic-id-vec "span")
+                        ]
+                    ; (println "newer span-id-c-vec: " span-id-vec)
+                    ^{:key topic-id}
+                    [:li {:id topic-id}
                      [:div.tree-control--topic-div
-                      [build-chevron root-ratom rc indices]
-                      [build-topic-span root-ratom rc span-id-vec]
+                      [build-chevron root-ratom t id-prefix] ;indices]
+                      [build-topic-span root-ratom t span-id] ;span-id-vec]
                       (when (and (:children ele) (:expanded ele))
-                        [new-tree->hiccup root-ratom (r/cursor rc [:children]) indices])]]))
+                        [newer-tree->hiccup root-ratom (r/cursor t [:children]) id-prefix])]])) ;indices])]]))
                 @subtree-ratom)])
 
-(defn tree->hiccup-helper
-  "Given a data structure containing a hierarchical tree of topics, generate
-  hiccup to represent that tree. Also generates a unique, structure-based
-  id that is included in the hiccup so that the correct element in the
-  application state can be located when its corresponding HTML element is
-  clicked."
-  [root-ratom sub-tree-ratom path-so-far]
-  (fn [root-ratom sub-tree-ratom path-so-far]
-    (let [v-range (range (count @sub-tree-ratom))]
-      [:ul
-       ; Make sure the top-level group of elements use the CSS to represent
-       ; it as an hierarchy.
-       (when (= path-so-far ["root"])
-         {:class "tree-control--list"
-          :id    "a-tree-control-id"})
-       (doall
-         (for
-           [index v-range]                                  ;(range (count @sub-tree-ratom))]
-           (let [t (r/cursor sub-tree-ratom [index])
-                 id-prefix (conj path-so-far index)
-                 topic-id (tree-id-parts->tree-id-string (conj id-prefix "topic"))
-                 span-id (change-tree-id-type topic-id "span")]
-             ^{:key topic-id}
-             [:li {:id topic-id}
-              [:div.tree-control--topic-div
-               [build-chevron root-ratom t id-prefix]
-               [build-topic-span root-ratom t span-id]
-               (when (and (:children @t)
-                          (:expanded @t))
-                 [tree->hiccup-helper root-ratom (r/cursor t [:children]) id-prefix])]])))
-       ])))
+;(defn tree->hiccup-helper
+;  "Given a data structure containing a hierarchical tree of topics, generate
+;  hiccup to represent that tree. Also generates a unique, structure-based
+;  id that is included in the hiccup so that the correct element in the
+;  application state can be located when its corresponding HTML element is
+;  clicked."
+;  [root-ratom sub-tree-ratom path-so-far]
+;  (fn [root-ratom sub-tree-ratom path-so-far]
+;    (let [v-range (range (count @sub-tree-ratom))]
+;      [:ul
+;       ; Make sure the top-level group of elements use the CSS to represent
+;       ; it as an hierarchy.
+;       (when (= path-so-far ["root"])
+;         {:class "tree-control--list"
+;          :id    "a-tree-control-id"})
+;       (doall
+;         (for
+;           [index v-range]                                  ;(range (count @sub-tree-ratom))]
+;           (let [t (r/cursor sub-tree-ratom [index])
+;                 id-prefix (conj path-so-far index)
+;                 topic-id (tree-id-parts->tree-id-string (conj id-prefix "topic"))
+;                 span-id (change-tree-id-type topic-id "span")]
+;             ^{:key topic-id}
+;             [:li {:id topic-id}
+;              [:div.tree-control--topic-div
+;               [build-chevron root-ratom t id-prefix]
+;               [build-topic-span root-ratom t span-id]
+;               (when (and (:children @t)
+;                          (:expanded @t))
+;                 [tree->hiccup-helper root-ratom (r/cursor t [:children]) id-prefix])]])))
+;       ])))
 
-(defn tree->hiccup
-  "Return a hiccup representation of the hierarchical tree data structure."
-  [root-ratom]
-  (fn [root-atom]
-    [tree->hiccup-helper root-ratom root-ratom ["root"]]))
+;(defn old-tree->hiccup
+;  "Return a hiccup representation of the hierarchical tree data structure."
+;  [root-ratom]
+;  (fn [root-atom]
+;    [tree->hiccup-helper root-ratom root-ratom ["root"]]))
 
 (defn home
   "Return a function to layout the home (only) page."
@@ -840,12 +869,16 @@
       [:h3 "Some experiments with hierarchical data."]]
      [:div.tree-control
       [:p.tree-control--description "Here is the result of "
-       [:code "tree->hiccup-helper"] ":"]
-      [:div.tree-control--content [tree->hiccup (r/cursor app-state-atom [:tree])]]
+       [:code "tree->hiccup"] ":"]
+      [:div.tree-control--content
+       (let [root-ratom (r/cursor app-state-atom [:tree])]
+         [newer-tree->hiccup root-ratom root-ratom ["root"]])]
+      ;[:div.tree-control--content [old-tree->hiccup (r/cursor app-state-atom [:tree])]]
       [add-move-remove-rocks-play-text-button app-state-ratom]]
-     [:div.tree-control--content
-      (let [root-ratom (r/cursor app-state-atom [:tree])]
-        [new-tree->hiccup root-ratom root-ratom []])]]))
+     ;[:div.tree-control--content
+     ; (let [root-ratom (r/cursor app-state-atom [:tree])]
+     ;   [newer-tree->hiccup root-ratom root-ratom ["root"]])]
+     ]))
 
 (defn start []
   (r/render-component [home test-hierarchy]
