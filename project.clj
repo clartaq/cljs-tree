@@ -41,9 +41,11 @@
                                :output-to            "resources/public/js/compiled/cljs_tree.js"
                                :output-dir           "resources/public/js/compiled/out"
                                :source-map-timestamp true
-                               ;; To console.log CLJS data-structures make sure you enable devtools in Chrome
+                               ;; To console.log CLJS data-structures make sure
+                               ;; you enable devtools in Chrome
                                ;; https://github.com/binaryage/cljs-devtools
-                               :preloads             [devtools.preload]}}
+                               ;; :preloads             [devtools.preload]
+                               }}
 
                {:id           "test"
                 :source-paths ["src" "test"]
@@ -110,14 +112,16 @@
   ;; Setting up nREPL for Figwheel and ClojureScript dev
   ;; Please see:
   ;; https://github.com/bhauman/lein-figwheel/wiki/Using-the-Figwheel-REPL-within-NRepl
-  :profiles {:dev  {:dependencies  [[binaryage/devtools "0.9.10"]
-                                    [figwheel-sidecar "0.5.18"]
-                                    [cider/piggieback "0.3.10"]]
+  :profiles {:dev  {:dependencies  [[binaryage/devtools "0.9.9"]
+                                    [figwheel-sidecar "0.5.16"]
+                                    ;;[cider/piggieback "0.3.1"]
+                                    ;;[org.clojure/tools.nrepl "0.2.13"]
+                                    ]
                     ;; need to add dev source path here to get user.clj loaded
                     :source-paths  ["src" "dev"]
                     ;; for CIDER
-                    ;; :plugins [[cider/cider-nrepl "0.12.0"]]
-                    :repl-options  {:nrepl-middleware [cider.piggieback/wrap-cljs-repl]}
+                    ;;:plugins [[cider/cider-nrepl "0.21.1"]]
+                    ;; repl-options  {:nrepl-middleware [cider.piggieback/wrap-cljs-repl]}
                     ;; need to add the compliled assets to the :clean-targets
                     :clean-targets ^{:protect false} ["resources/public/js/compiled"
                                                       :target-path]}
