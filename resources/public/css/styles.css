@@ -229,6 +229,8 @@ p {
     border-radius: 4px;
     box-sizing: border-box;
     overflow: hidden;
+
+    background-color: lavender;
 }
 
 .tree-control--description {
@@ -238,10 +240,12 @@ p {
     box-sizing: border-box;
 }
 
-.tree-control--content {
-    flex: 1 1 auto;
+.tree-control--container-div {
+    /*flex: 1 1 auto;*/
     overflow: auto;
     box-sizing: border-box;
+
+    background-color: blanchedalmond;
 }
 
 .tree-control--button-area {
@@ -315,16 +319,22 @@ ul.tree-control--list ul {
     margin-left: 1rem;
 }
 
+.tree-control--list-item-div {
+    display: flex;
+    flex-direction: row;
+    margin-top: 0.1em;
+    margin-bottom: 0.1em;
+
+    background-color: lightgreen;
+}
+
 .tree-control--expansion-span {
     font-size: 70%;
     cursor: default;
 
     padding-right: 0.5rem;
-}
 
-.tree-control--topic-div {
-    margin-top: 0.1em;
-    margin-bottom: 0.1em;
+    background-color: #cfe7ed;
 }
 
 .tree-control--topic {
@@ -334,10 +344,10 @@ ul.tree-control--list ul {
 }
 
 .tree-control--topic-label {
-    width: 95%;
+    background-color: #cfe7ed;
 }
 
-.tree-control--editor {
+.tree-control--topic-editor {
     font-family: var(--body-font-family);
     font-weight: normal;
     color: var(--body-color);
@@ -354,7 +364,61 @@ ul.tree-control--list ul {
 ** Take away the blue border around the editor when it is being
 ** typed in.
  */
-.tree-control--editor:focus {
+.tree-control--topic-editor:focus {
     outline: none;
     border: none;
 }
+
+
+.x-tree--list {
+    display: flex;
+    flex-direction: column;
+
+    background-color: gray;
+}
+
+.x-tree-row-div {
+    display: flex;
+}
+
+.x-tree--indent-div {
+    background-color: antiquewhite;
+}
+
+.x-tree--chevron-div {
+    flex: 0 0 auto;
+    cursor: default;
+    font-size: 70%;
+    width: 0.6rem;
+
+    padding: 0.1rem 0.5rem 0.1rem 0.1rem;
+
+    background-color: lavender;
+}
+
+.x-tree--topic-info-div {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex: 1;
+}
+
+.x-tree--topic-label {
+    flex: 1;
+    background-color: lightgoldenrodyellow;
+}
+
+.x-tree--topic-editor {
+    flex: 1;
+    font-family: var(--body-font-family);
+    font-size: 1rem;
+    line-height: 1.5rem;
+
+    margin: 0;
+    padding: 0;
+
+    border: none;
+    outline: none;
+}
+
+
