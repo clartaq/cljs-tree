@@ -22,11 +22,11 @@
 ; building path strings through the hierarchy.
 (def ^{:constant true} topic-separator \u02D1)
 
-(def id-of-first-top-level-topic (str "root" topic-separator 0 topic-separator "topic"))
+;(def id-of-first-top-level-topic (str "root" topic-separator 0 topic-separator "topic"))
 (def id-of-second-top-level-topic (str "root" topic-separator 1 topic-separator "topic"))
 
 (def empty-test-topic {:topic "Empty Test Topic"})
-(def empty-topic {:topic ""})
+;(def empty-topic {:topic ""})
 
 ;; The hierarchical tree of tags is contained in the following. It is possible
 ;; to change it dynamically and have it re-render correctly.
@@ -639,39 +639,50 @@
         ekwv (conj kwv :expanded)]
     (swap! root-ratom update-in ekwv not)))
 
-(defn build-chevron
+;; The amount of indentation to accumulate for each level down the tree.
+(def indent-increment 1.5)
+
+(defn indent-div [indent-id]
+  (let [id-v (tree-id->nav-index-vector indent-id)
+        indent (* indent-increment (- (count id-v) 1))
+        indent-style (str 0 " " 0 " " indent "rem")]
+    ^{:key indent-id}
+    [:div#indent-id.tree-control--indent-div {:style {:flex indent-style}}]))
+
+(defn chevron-div
   "Get the expansion symbol to be used at the front of a topic. Returns
   a result based on whether the tree has children, and if so, whether they
   are expanded or not."
-  [root-ratom subtree-ratom id-prefix]
-  (let [clickable-chevron {:class    "tree-control--expansion-span"
-                           :id       (tree-id-parts->tree-id-string
-                                       (conj id-prefix "chevron"))
-                           :on-click #(handle-chevron-click! % root-ratom)
-                           :cursor   "pointer"}
-        invisible-chevron {:class "tree-control--expansion-span"
-                           :style {:opacity "0.0"}}
+  [root-ratom subtree-ratom chevron-id]
+  (let [clickable-chevron-props {:class    "tree-control--chevron-div"
+                                 :id       chevron-id
+                                 :on-click #(handle-chevron-click! % root-ratom)}
+        invisible-chevron-props {:class "tree-control--chevron-div"
+                                 :id    chevron-id
+                                 :style {:opacity "0.0"}}
         es (cond
              (and (:children @subtree-ratom)
-                  (:expanded @subtree-ratom)) [:span clickable-chevron (str \u25BC \space)]
-             (:children @subtree-ratom) [:span clickable-chevron (str \u25BA \space)]
+                  (:expanded @subtree-ratom)) [:div clickable-chevron-props
+                                               (str \u25BC \space)]
+             (:children @subtree-ratom) [:div clickable-chevron-props
+                                         (str \u25BA \space)]
              ; No children, so no chevron is displayed.
              ; This stuff is to ensure consistent horizontal spacing
              ; even though no expansion chevron is visible.
-             :default [:span invisible-chevron (str \u25BA \space)])]
+             :default [:div invisible-chevron-props (str \u25BA \space)])]
     es))
 
-(defn build-topic-span
-  "Build the textual part of a topic/headline."
+(defn topic-info-div
+  "Build the textual/interactive part of a topic/headline."
   [root-ratom sub-tree-ratom span-id]
   (let [topic-ratom (r/cursor sub-tree-ratom [:topic])
         label-id (change-tree-id-type span-id "label")
         editor-id (change-tree-id-type span-id "editor")]
-    [:span.tree-control--topic
-
+    [:div.tree-control--topic-info-div
      [:label {:id      label-id
               :style   {:display :initial}
               :class   "tree-control--topic-label"
+              :for     editor-id
               ;:onMouseOver #(println "id: " span-id ", label-id: " label-id ", editor-id: " editor-id)
               :onClick (fn [e]
                          (swap-display-properties label-id editor-id)
@@ -689,88 +700,7 @@
               :onChange  #(reset! topic-ratom (event->target-value %))
               :value     @topic-ratom}]]))
 
-(defn tree->hiccup
-  "Generate a hiccup representation of the tree data structure."
-  [root-ratom subtree-ratom path-so-far]
-  [:ul
-   (when (= path-so-far ["root"])
-     {:class "tree-control--list"})
-   (map-indexed (fn [vector-index ele]
-                  (let [t (r/cursor subtree-ratom [vector-index])
-                        id-prefix (conj path-so-far vector-index)
-                        topic-id (tree-id-parts->tree-id-string (conj id-prefix "topic"))
-                        span-id (change-tree-id-type topic-id "span")]
-                    ^{:key topic-id}
-                    [:li {:id topic-id}
-                     [:div.tree-control--list-item-div
-                      [build-chevron root-ratom t id-prefix]
-                      [build-topic-span root-ratom t span-id]
-                      (when (and (:children ele) (:expanded ele))
-                        [tree->hiccup root-ratom (r/cursor t [:children]) id-prefix])]]))
-                @subtree-ratom)])
-
-;; The amount of indentation to accumulate for each level down in the tree.
-(def indent-increment 1.5)
-
-(defn zindent-div [indent-id]
-  (let [id-v (tree-id->nav-index-vector indent-id)
-        indent (* indent-increment (- (count id-v) 1))
-        indent-style (str 0 " " 0 " " indent "rem")]
-    ^{:key indent-id}
-    [:div#indent-id.x-tree--indent-div {:style {:flex indent-style}}]))
-
-(defn zchevron-div
-  "Get the expansion symbol to be used at the front of a topic. Returns
-  a result based on whether the tree has children, and if so, whether they
-  are expanded or not."
-  [root-ratom subtree-ratom chevron-id]
-  (let [clickable-chevron-props {:class    "x-tree--chevron-div"
-                                 :id       chevron-id
-                                 :on-click #(handle-chevron-click! % root-ratom)}
-        invisible-chevron-props {:class "x-tree--chevron-div"
-                                 :id    chevron-id
-                                 :style {:opacity "0.0"}}
-        es (cond
-             (and (:children @subtree-ratom)
-                  (:expanded @subtree-ratom)) [:div clickable-chevron-props
-                                               (str \u25BC \space)]
-             (:children @subtree-ratom) [:div clickable-chevron-props
-                                         (str \u25BA \space)]
-             ; No children, so no chevron is displayed.
-             ; This stuff is to ensure consistent horizontal spacing
-             ; even though no expansion chevron is visible.
-             :default [:div invisible-chevron-props (str \u25BA \space)])]
-    es))
-
-(defn x-tree-build-topic-div
-  "Build the textual/interactive part of a topic/headline."
-  [root-ratom sub-tree-ratom span-id]
-  (let [topic-ratom (r/cursor sub-tree-ratom [:topic])
-        label-id (change-tree-id-type span-id "label")
-        editor-id (change-tree-id-type span-id "editor")]
-    [:div.x-tree--topic-info-div
-     [:label {:id      label-id
-              :style   {:display :initial}
-              :class   "x-tree--topic-label"
-              :for     editor-id
-              ;:onMouseOver #(println "id: " span-id ", label-id: " label-id ", editor-id: " editor-id)
-              :onClick (fn [e]
-                         (swap-display-properties label-id editor-id)
-                         (.focus (get-element-by-id editor-id))
-                         (.stopPropagation e))}
-      @topic-ratom]
-
-     [:input {:type      "text"
-              :id        editor-id
-              :class     "x-tree--topic-editor"
-              :style     {:display :none}
-              :onKeyDown #(handle-key-down % root-ratom topic-ratom span-id)
-              :onFocus   #(.stopPropagation %)
-              :onBlur    #(swap-display-properties label-id editor-id)
-              :onChange  #(reset! topic-ratom (event->target-value %))
-              :value     @topic-ratom}]]))
-
-(defn get-row-ids
+(defn dom-ids-for-row
   "Return a map of all of the ids used in building a row of the control."
   [parts]
   (let [row-id-parts (conj parts "row")
@@ -780,10 +710,10 @@
      :chevron-id (change-tree-id-type row-id "chevron")
      :topic-id   (change-tree-id-type row-id "topic")}))
 
-(defn outliner-row
+(defn outliner-row-div
   "Return one row of the outliner."
   [root-ratom index-vector]
-  (let [ids-for-row (get-row-ids index-vector)
+  (let [ids-for-row (dom-ids-for-row index-vector)
         row-id (:row-id ids-for-row)
         indent-id (:indent-id ids-for-row)
         chevron-id (:chevron-id ids-for-row)
@@ -791,14 +721,14 @@
         nav-path (tree-id->tree-path-nav-vector row-id)
         subtree-ratom (r/cursor root-ratom nav-path)]
     ^{:key row-id}
-    [:div.x-tree-row-div
-     [zindent-div indent-id]
-     [zchevron-div root-ratom subtree-ratom chevron-id]
-     [x-tree-build-topic-div root-ratom subtree-ratom topic-id]]))
+    [:div.tree-control--row-div
+     [indent-div indent-id]
+     [chevron-div root-ratom subtree-ratom chevron-id]
+     [topic-info-div root-ratom subtree-ratom topic-id]]))
 
 ;; From: https://stackoverflow.com/questions/5232350/clojure-semi-flattening-a-nested-sequence
 (defn flatten-to-vectors
-  "Flatten nested sequences of vector to a flat sequence of those vectors."
+  "Flatten nested sequences of vectors to a flat sequence of those vectors."
   [s]
   (mapcat #(if (every? coll? %) (flatten-to-vectors %) (list %)) s))
 
@@ -815,14 +745,14 @@
             (cons new-id (visible-nodes (:children ele) new-id)))))
       tree)))
 
-(defn x-tree->hiccup
+(defn tree->hiccup
   "Return a div containing all of the visible content of the tree based on
   the current state of the tree."
   [root-ratom]
   (fn [root-ratom]
     (let [nav-vectors (visible-nodes @root-ratom ["root"])]
-      (into [:div.x-tree-list]
-            (map #(outliner-row root-ratom %) nav-vectors)))))
+      (into [:div.tree-control--list]
+            (map #(outliner-row-div root-ratom %) nav-vectors)))))
 
 (defn home
   "Return a function to layout the home (only) page."
@@ -837,12 +767,8 @@
        [:code "tree->hiccup"] ":"]
       [:div.tree-control--container-div
        (let [root-ratom (r/cursor app-state-atom [:tree])]
-         ;[tree->hiccup root-ratom root-ratom ["root"]]
-         [x-tree->hiccup root-ratom])]
-      [add-move-remove-rocks-play-text-button app-state-ratom]]
-     ;[x-tree->hiccup (r/cursor app-state-atom [:tree])]
-     ]
-    ))
+         [tree->hiccup root-ratom])]
+      [add-move-remove-rocks-play-text-button app-state-ratom]]]))
 
 (defn start []
   (r/render-component [home test-hierarchy]

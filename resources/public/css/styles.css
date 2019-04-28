@@ -241,7 +241,6 @@ p {
 }
 
 .tree-control--container-div {
-    /*flex: 1 1 auto;*/
     overflow: auto;
     box-sizing: border-box;
 
@@ -307,85 +306,26 @@ p {
     pointer-events: none;
 }
 
-/* Styles for the tree control list. */
-
-ul.tree-control--list, ul.tree-control--list ul {
-    list-style-type: none;
-    margin: 0;
-    padding: 0;
-}
-
-ul.tree-control--list ul {
-    margin-left: 1rem;
-}
-
-.tree-control--list-item-div {
-    display: flex;
-    flex-direction: row;
-    margin-top: 0.1em;
-    margin-bottom: 0.1em;
-
-    background-color: lightgreen;
-}
-
-.tree-control--expansion-span {
-    font-size: 70%;
-    cursor: default;
-
-    padding-right: 0.5rem;
-
-    background-color: #cfe7ed;
-}
-
-.tree-control--topic {
-}
-
-.tree-control--topic:hover {
-}
-
-.tree-control--topic-label {
-    background-color: #cfe7ed;
-}
-
-.tree-control--topic-editor {
-    font-family: var(--body-font-family);
-    font-weight: normal;
-    color: var(--body-color);
-    background-color: var(--body-background-color);
-    font-size: 1em;
-
-    width: 55ch;
-
-    border: none;
-    outline: none;
-}
-
 /*
-** Take away the blue border around the editor when it is being
-** typed in.
+** Stuff used in the actual tree control.
  */
-.tree-control--topic-editor:focus {
-    outline: none;
-    border: none;
-}
 
-
-.x-tree--list {
+.tree-control--list {
     display: flex;
     flex-direction: column;
 
     background-color: gray;
 }
 
-.x-tree-row-div {
+.tree-control--row-div {
     display: flex;
 }
 
-.x-tree--indent-div {
+.tree-control--indent-div {
     background-color: antiquewhite;
 }
 
-.x-tree--chevron-div {
+.tree-control--chevron-div {
     flex: 0 0 auto;
     cursor: default;
     font-size: 70%;
@@ -396,19 +336,19 @@ ul.tree-control--list ul {
     background-color: lavender;
 }
 
-.x-tree--topic-info-div {
+.tree-control--topic-info-div {
     display: flex;
     flex-direction: row;
     align-items: center;
     flex: 1;
 }
 
-.x-tree--topic-label {
+.tree-control--topic-label {
     flex: 1;
     background-color: lightgoldenrodyellow;
 }
 
-.x-tree--topic-editor {
+.tree-control--topic-editor {
     flex: 1;
     font-family: var(--body-font-family);
     font-size: 1rem;
