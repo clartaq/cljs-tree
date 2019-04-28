@@ -25,6 +25,10 @@
 ;(def id-of-first-top-level-topic (str "root" topic-separator 0 topic-separator "topic"))
 (def id-of-second-top-level-topic (str "root" topic-separator 1 topic-separator "topic"))
 
+;; The amount of indentation (in rems) to accumulate for each level
+;; down the tree.
+(def ^{:constant true} indent-increment 1.5)
+
 (def empty-test-topic {:topic "Empty Test Topic"})
 ;(def empty-topic {:topic ""})
 
@@ -639,9 +643,6 @@
         ekwv (conj kwv :expanded)]
     (swap! root-ratom update-in ekwv not)))
 
-;; The amount of indentation to accumulate for each level down the tree.
-(def indent-increment 1.5)
-
 (defn indent-div [indent-id]
   (let [id-v (tree-id->nav-index-vector indent-id)
         indent (* indent-increment (- (count id-v) 1))
@@ -674,10 +675,11 @@
 
 (defn topic-info-div
   "Build the textual/interactive part of a topic/headline."
-  [root-ratom sub-tree-ratom span-id]
+  [root-ratom sub-tree-ratom ids-for-row]
   (let [topic-ratom (r/cursor sub-tree-ratom [:topic])
-        label-id (change-tree-id-type span-id "label")
-        editor-id (change-tree-id-type span-id "editor")]
+        label-id (:label-id ids-for-row)
+        editor-id (:editor-id ids-for-row)
+        topic-id (:topic-id ids-for-row)]
     [:div.tree-control--topic-info-div
      [:label {:id      label-id
               :style   {:display :initial}
@@ -694,7 +696,7 @@
               :id        editor-id
               :class     "tree-control--topic-editor"
               :style     {:display :none}
-              :onKeyDown #(handle-key-down % root-ratom topic-ratom span-id)
+              :onKeyDown #(handle-key-down % root-ratom topic-ratom topic-id)
               :onFocus   #(.stopPropagation %)
               :onBlur    #(swap-display-properties label-id editor-id)
               :onChange  #(reset! topic-ratom (event->target-value %))
@@ -708,7 +710,9 @@
     {:row-id     row-id
      :indent-id  (change-tree-id-type row-id "indent")
      :chevron-id (change-tree-id-type row-id "chevron")
-     :topic-id   (change-tree-id-type row-id "topic")}))
+     :topic-id   (change-tree-id-type row-id "topic")
+     :label-id   (change-tree-id-type row-id "label")
+     :editor-id  (change-tree-id-type row-id "editor")}))
 
 (defn outliner-row-div
   "Return one row of the outliner."
@@ -717,14 +721,13 @@
         row-id (:row-id ids-for-row)
         indent-id (:indent-id ids-for-row)
         chevron-id (:chevron-id ids-for-row)
-        topic-id (:topic-id ids-for-row)
         nav-path (tree-id->tree-path-nav-vector row-id)
         subtree-ratom (r/cursor root-ratom nav-path)]
     ^{:key row-id}
     [:div.tree-control--row-div
      [indent-div indent-id]
      [chevron-div root-ratom subtree-ratom chevron-id]
-     [topic-info-div root-ratom subtree-ratom topic-id]]))
+     [topic-info-div root-ratom subtree-ratom ids-for-row]]))
 
 ;; From: https://stackoverflow.com/questions/5232350/clojure-semi-flattening-a-nested-sequence
 (defn flatten-to-vectors
