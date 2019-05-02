@@ -26,7 +26,7 @@
   the vector. If n is greater than the length of the vector, the new item
   will be inserted at the end of the vector."
   [v n new-item]
-  (cond (< n 0) (into [new-item] v)
+  (cond (neg? n) (into [new-item] v)
         (>= n (count v)) (conj v new-item)
         :default (into (conj (subvec v 0 n) new-item) (subvec v n))))
 

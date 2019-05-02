@@ -220,14 +220,14 @@
   "Split a DOM id string (as used in this program) into its parts and return
   a vector of the parts."
   [id]
-  (when (and id (not (empty? id)))
+  (when (and id (seq id))
     (s/split id topic-separator)))
 
 (defn tree-id-parts->tree-id-string
   "Return a string formed by interposing the topic-separator between the
   elements of the input vector."
   [v]
-  (when (and v (vector? v) (not (empty? v)))
+  (when (and v (vector? v) (seq v))
     (str (s/join topic-separator v))))
 
 (defn is-top-tree-id?
@@ -358,7 +358,7 @@
   [root-ratom tree-id]
   (let [nav-vector (tree-id->tree-path-nav-vector tree-id)
         my-cursor (r/cursor root-ratom nav-vector)]
-    (when (not (empty? (select-keys @my-cursor [:expanded])))
+    (when (seq (select-keys @my-cursor [:expanded]))
       (swap! my-cursor update :expanded not))))
 
 (defn remove-top-level-sibling!
@@ -474,7 +474,7 @@
   [root-ratom tree-id]
   (loop [id-so-far tree-id
          topic-map (get-topic root-ratom id-so-far)]
-    (if (not (and (:expanded topic-map) (:children topic-map)))
+    (if-not (and (:expanded topic-map) (:children topic-map))
       id-so-far
       (let [next-child-vector (:children topic-map)
             next-index (dec (count next-child-vector))
@@ -645,7 +645,7 @@
 
 (defn indent-div [indent-id]
   (let [id-v (tree-id->nav-index-vector indent-id)
-        indent (* indent-increment (- (count id-v) 1))
+        indent (* indent-increment (dec (count id-v)))
         indent-style (str 0 " " 0 " " indent "rem")]
     ^{:key indent-id}
     [:div#indent-id.tree-control--indent-div {:style {:flex indent-style}}]))
@@ -743,7 +743,7 @@
     (map-indexed
       (fn [idx ele]
         (let [new-id (conj so-far idx)]
-          (if (not (and (:children ele) (:expanded ele)))
+          (if-not (and (:children ele) (:expanded ele))
             new-id
             (cons new-id (visible-nodes (:children ele) new-id)))))
       tree)))
