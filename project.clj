@@ -12,6 +12,8 @@
 
   :source-paths ["src"]
 
+  :clean-targets ^{:protect false} ["resources/public/cljs-out"]
+
   :aliases {"fig"       ["trampoline" "run" "-m" "figwheel.main"]
             "fig:build" ["trampoline" "run" "-m" "figwheel.main" "-b" "dev" "-r"]
             "fig:min"   ["run" "-m" "figwheel.main" "-O" "advanced" "-bo" "dev"]
