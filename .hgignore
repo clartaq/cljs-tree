@@ -7,6 +7,5 @@ figwheel_server.log
 /.idea/
 /node_modules/
 /.lein-failures
-/doo-index.html
 /package-lock.json
-
+/.rebel_readline_history
