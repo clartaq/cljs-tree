@@ -6,6 +6,7 @@
 (ns cljs-tree.core
   (:require
     ;[cljs.pprint :as ppr]
+    [cljs-tree.demo-hierarchy :as h]
     [cljs-tree.vector-utils :refer [delete-at remove-first remove-last
                                     remove-last-two insert-at replace-at
                                     append-element-to-vector]]
@@ -31,113 +32,6 @@
 
 (def empty-test-topic {:topic "Empty Test Topic"})
 ;(def empty-topic {:topic ""})
-
-;; The hierarchical tree of tags is contained in the following. It is possible
-;; to change it dynamically and have it re-render correctly.
-
-(defonce test-hierarchy
-         (r/atom {:title   "cljs-tree"
-                  :tagline "Some experiments with hierarchical data."
-                  :tree    [{:topic    "Journal"
-                             :expanded true
-                             :children [{:topic "2016"}
-                                        {:topic    "2017"
-                                         :expanded nil
-                                         :children [{:topic    "11 - November"
-                                                     :expanded true
-                                                     :children [{:topic "Christmas Shopping"}
-                                                                {:topic "Buy Groceries"}]}
-                                                    {:topic    "22 - November"
-                                                     :expanded true
-                                                     :children [{:topic "Bake Pies"}]}
-                                                    {:topic    "25 - November"
-                                                     :expanded true
-                                                     :children [{:topic "Cook Turkey"}]}]}
-                                        {:topic "2018"}]}
-
-                            {:topic    "Books"
-                             :expanded true
-                             :children [{:topic    "Favorite Authors"
-                                         :expanded true
-                                         :children [{:topic    "Gum-Lickin' Warburger"
-                                                     :expanded true
-                                                     :children [{:topic "Age"}
-                                                                {:topic "DOB"}
-                                                                {:topic "Obituary"}]}
-                                                    {:topic "Bob Martin"}]}
-                                        {:topic    "Genre"
-                                         :expanded true
-                                         :children [{:topic    "Science"
-                                                     :expanded nil
-                                                     :children [{:topic    "Astrophysics for People in a Hurry"
-                                                                 :expanded true
-                                                                 :children [{:topic    "Author"
-                                                                             :expanded true
-                                                                             :children [{:topic "Neil de Grasse Tyson"}]}
-                                                                            {:topic    "ISBN"
-                                                                             :expanded true
-                                                                             :children [{:topic "978-0-393-60939-4"}]}]}]}
-                                                    {:topic    "Science Fiction"
-                                                     :expanded nil
-                                                     :children [{:topic "Space Opera"}
-                                                                {:topic "Military"}]}
-                                                    {:topic "Horror"}
-                                                    {:topic "Fantasy"}
-                                                    {:topic "Biography"}
-                                                    {:topic "History"}
-                                                    {:topic    "Programming"
-                                                     :expanded true
-                                                     :children [{:topic "On Lisp"}
-                                                                {:topic "Getting Clojure"}
-                                                                {:topic    "Clean Code"
-                                                                 :expanded nil
-                                                                 :children [{:topic    "Author"
-                                                                             :expanded true
-                                                                             :children [{:topic "Robert Martin"}]}
-                                                                            {:topic    "ISBN-10"
-                                                                             :expanded true
-                                                                             :children [{:topic "0-13-235088-2"}]}
-                                                                            {:topic    "ISBN-13"
-                                                                             :expanded true
-                                                                             :children [{:topic "978-0-13-235088-4"}]}]}]}]}]}
-
-                            {:topic    "Programming"
-                             :expanded true
-                             :children [{:topic    "Language"
-                                         :expanded true
-                                         :children [{:topic    "Java"
-                                                     :expanded true
-                                                     :children [{:topic "Snippets"}
-                                                                {:topic "Books"}
-                                                                {:topic "Blogs"}
-                                                                {:topic "Gui Development"}]}
-                                                    {:topic    "Clojure"
-                                                     :expanded true
-                                                     :children [{:topic "Snippets"}
-                                                                {:topic "Books"}
-                                                                {:topic "Numerics"}]}
-                                                    {:topic    "Lisp"
-                                                     :expanded nil
-                                                     :children [{:topic "History"}
-                                                                {:topic "Weenies"}
-                                                                {:topic "The All Powerful"}]}]}]}
-
-                            {:topic    "Animals"
-                             :expanded true
-                             :children [{:topic "Birds"}
-                                        {:topic    "Mammals"
-                                         :expanded nil
-                                         :children [{:topic "Elephant"}
-                                                    {:topic "Mouse"}]}
-                                        {:topic "Reptiles"}]}
-
-                            {:topic    "Plants"
-                             :expanded true
-                             :children [{:topic    "Flowers"
-                                         :expanded true
-                                         :children [{:topic "Rose"}
-                                                    {:topic "Tulip"}]}
-                                        {:topic "Trees"}]}]}))
 
 ;;;-----------------------------------------------------------------------------
 ;;; Utilities
@@ -179,6 +73,12 @@
   (when-let [ele (get-element-by-id ele-id)]
     (.scrollIntoView ele)))
 
+(defn style-property-value
+  "Return the value of the property for the element with the given id."
+  [id property]
+  (when-let [style-declaration (.-style (get-element-by-id id))]
+    (.getPropertyValue style-declaration property)))
+
 (defn swap-style-property
   "Swap the specified style settings for the two elements."
   [first-id second-id property]
@@ -195,23 +95,23 @@
   (swap-style-property first-id second-id "display"))
 
 (defn unpack-keyboard-event
+  "Unpack all of the information in a keyboard event and return a map
+  of the contents."
   [evt]
-  (let [event-data-map (into (sorted-map)
-                             {:alt-key            (.-altKey evt)
-                              :char-code          (.-charCode evt)
-                              :cmd-key            (or (.-metaKey evt) (.-ctrlKey evt))
-                              :code               (.-code evt)
-                              :ctrl-key           (.-ctrlKey evt)
-                              :get-modifier-state (.getModifierState evt)
-                              :is-composing       (.-isComposing evt)
-                              :key                (.-key evt)
-                              :key-code           (.-keyCode evt)
-                              :location           (.-location evt)
-                              :meta-key           (.-metaKey evt)
-                              :repeating?         (.-repeat evt)
-                              :shift-key          (.-shiftKey evt)
-                              :which              (.-which evt)})]
-    event-data-map))
+  {:alt-key            (.-altKey evt)
+   :char-code          (.-charCode evt)
+   :cmd-key            (or (.-metaKey evt) (.-ctrlKey evt))
+   :code               (.-code evt)
+   :ctrl-key           (.-ctrlKey evt)
+   :get-modifier-state (.getModifierState evt)
+   :is-composing       (.-isComposing evt)
+   :key                (.-key evt)
+   :key-code           (.-keyCode evt)
+   :location           (.-location evt)
+   :meta-key           (.-metaKey evt)
+   :repeating?         (.-repeat evt)
+   :shift-key          (.-shiftKey evt)
+   :which              (.-which evt)})
 
 ;;------------------------------------------------------------------------------
 ;; Tree id manipulation functions.
@@ -332,6 +232,10 @@
   [root-ratom topic-id]
   (:children (get-topic root-ratom topic-id)))
 
+(defn count-children
+  [root-ratom topic-id]
+  (count (has-children root-ratom topic-id)))
+
 (defn is-expanded?
   "Return true if the subtree is in the expanded state (implying that it
   has children). Returns nil if the subtree is not expanded."
@@ -413,7 +317,7 @@
   [parent-topic-ratom index topic-to-add]
   (if (vector? @parent-topic-ratom)
     (swap! parent-topic-ratom insert-at index topic-to-add)
-    (let [child-topic-vector (:children @parent-topic-ratom)
+    (let [child-topic-vector (or (:children @parent-topic-ratom) [])
           new-child-vector (insert-at child-topic-vector index topic-to-add)]
       (swap! parent-topic-ratom assoc :children new-child-vector))))
 
@@ -489,7 +393,9 @@
   (println "focus-editor-on-id: tree-id: " tree-id)
   (when tree-id
     (let [editor-id (change-tree-id-type tree-id "editor")
-          label-id (change-tree-id-type tree-id "label")]
+          _ (println "    editor-id: " editor-id)
+          label-id (change-tree-id-type tree-id "label")
+          _ (println "    label-id: " label-id)]
       (swap-display-properties label-id editor-id)
       (.focus (get-element-by-id editor-id)))))
 
@@ -518,6 +424,10 @@
             (focus-editor-for-id
               (id-of-last-visible-child root-ratom (id-of-previous-sibling span-id)))))))))
 
+(defn get-caret-position
+  [ele-id]
+  (.-selectionStart (get-element-by-id ele-id)))
+
 (defn promote-headline
   [root-ratom evt topic-ratom span-id]
   (println "promote-headline"))
@@ -525,31 +435,55 @@
 (defn demote-headline
   [root-ratom evt topic-ratom span-id]
   (println "demote-headline")
-  (println "(id-of-previous-sibling span-id): " (id-of-previous-sibling span-id))
-  (if (has-children root-ratom (id-of-previous-sibling span-id))
-    (println "Has children")
-    (println "Has NO children"))
+  (if (and (id-of-previous-sibling span-id) (has-children root-ratom (id-of-previous-sibling span-id)))
+    (println "    Has children")
+    (println "    Has NO children"))
   (when-let [previous-sibling (id-of-previous-sibling span-id)]
     (expand-node root-ratom previous-sibling)
-    (let [sibling-parts (tree-id->tree-id-parts previous-sibling)
-          with-added-leaf (conj (remove-last sibling-parts) 0)
+    (let [sibling-child-count (count-children root-ratom previous-sibling)
+          _ (println "    sibling-child-count: " sibling-child-count)
+          editor-id (change-tree-id-type span-id "editor")
+          _ (println "    editor-id: " editor-id)
+          editor-display-property (style-property-value editor-id "display")
+          _ (println "    editor-display-property: " editor-display-property)
+          was-editing? (= editor-display-property "initial")
+          _ (println "    was-editing? : " was-editing?)
+          caret-position (when was-editing? (get-caret-position editor-id))
+          _ (println "    caret-position: " caret-position)
+          sibling-parts (tree-id->tree-id-parts previous-sibling)
+          _ (println "    sibling-parts: " sibling-parts)
+          with-added-leaf (conj (remove-last sibling-parts) sibling-child-count)
+          _ (println "    with-added-leaf: " with-added-leaf)
           demoted-prefix (tree-id-parts->tree-id-string with-added-leaf)
-          demoted-id (str demoted-prefix topic-separator "topic")]
-      (println "demoted-id: " demoted-id)
-      (move-branch! root-ratom span-id demoted-id))))
+          _ (println "    demoted-prefix: " demoted-prefix)
+          demoted-id (str demoted-prefix topic-separator "topic")
+          demoted-editor-id (str demoted-prefix topic-separator "editor")]
+      (move-branch! root-ratom span-id demoted-id)
+      (r/after-render
+        (fn []
+          (focus-editor-for-id demoted-editor-id)
+          (println "    focused: now trying to set caret")
+          (when was-editing?
+            (println "    was editing: demoted-editor-id: " demoted-editor-id ", caret-position: " caret-position)
+            (println "    demoted-editor-element: " (get-element-by-id demoted-editor-id))
+            (.setSelectionRange (get-element-by-id demoted-editor-id) caret-position caret-position)))))))
 
 (defn handle-tab-key-down
   [root-ratom evt topic-ratom span-id]
   (println "handle-tab-key-down: span-id: " span-id)
   (.preventDefault evt)
   (let [evt-map (unpack-keyboard-event evt)]
-    (cond
-      (and (:shift-key evt-map)
-           (:cmd-key evt-map)
-           (:alt-key evt-map)) (promote-headline root-ratom evt topic-ratom span-id)
-      (and (:cmd-key evt-map)
-           (:alt-key evt-map)) (demote-headline root-ratom evt topic-ratom span-id)
-      :default nil)))
+    (if (:shift-key evt-map)
+      (promote-headline root-ratom evt topic-ratom span-id)
+      (demote-headline root-ratom evt topic-ratom span-id))
+    ; (cond
+    ;   (and (:shift-key evt-map)
+    ;        (:cmd-key evt-map)
+    ;        (:alt-key evt-map)) (promote-headline root-ratom evt topic-ratom span-id)
+    ;   (and (:cmd-key evt-map)
+    ;        (:alt-key evt-map)) (demote-headline root-ratom evt topic-ratom span-id)
+    ;   :default nil)
+    ))
 
 (defn handle-key-down
   "Detect key-down events and dispatch them to the appropriate handlers."
@@ -774,7 +708,7 @@
       [add-move-remove-rocks-play-text-button app-state-ratom]]]))
 
 (defn start []
-  (r/render-component [home test-hierarchy]
+  (r/render-component [home h/test-hierarchy]
                       (get-element-by-id "app")))
 
 (defn on-js-reload []
