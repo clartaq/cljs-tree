@@ -67,6 +67,11 @@
   [evt]
   (.-value (event->target-element evt)))
 
+(defn get-caret-position
+  "Return the caret position of the text element with the id passed."
+  [ele-id]
+  (.-selectionStart (get-element-by-id ele-id)))
+
 (defn scroll-ele-into-view
   "Scroll the element with the given id into view."
   [ele-id]
@@ -213,7 +218,13 @@
     {:path-to-parent (vec interposed) :child-index idx}))
 
 ;;------------------------------------------------------------------------------
-;; Functions to manipulate the tree and subtrees.
+;; Functions to query and manipulate the tree and subtrees.
+
+(defn editing?
+  "Return true if the element with the given id is in the editing state."
+  [id]
+  (let [editor-id (change-tree-id-type id "editor")]
+    (= (style-property-value editor-id "display") "initial")))
 
 (defn lower?
   "Return true if the first path is 'lower' in the tree than second path."
@@ -264,6 +275,40 @@
         my-cursor (r/cursor root-ratom nav-vector)]
     (when (seq (select-keys @my-cursor [:expanded]))
       (swap! my-cursor update :expanded not))))
+
+(defn focus-editor-for-id
+  "Focus the editor associated with the id. Assumes the topic is visible and
+  that the editor is not already focused."
+  [tree-id]
+  (when tree-id
+    (let [editor-id (change-tree-id-type tree-id "editor")]
+      (when-not (editing? editor-id)
+        (let [label-id (change-tree-id-type tree-id "label")]
+          (swap-display-properties label-id editor-id)
+          (.focus (get-element-by-id editor-id)))))))
+
+(defn id-of-previous-sibling
+  "Return the id of the previous sibling of this tree id. Returns nil if this
+  tree id is the first (zero'th) in a group of siblings."
+  [current-sibling-id]
+  (let [parts (tree-id->tree-id-parts current-sibling-id)
+        last-path-index (int (nth parts (- (count parts) 2)))]
+    (when (pos? last-path-index)
+      (tree-id-parts->tree-id-string
+        (into (remove-last-two parts) [(dec last-path-index) "topic"])))))
+
+(defn id-of-last-visible-child
+  "Return the id of the last visible child of the branch starting at tree-id.
+  The last visible child may be many levels deeper in the tree."
+  [root-ratom tree-id]
+  (loop [id-so-far tree-id
+         topic-map (get-topic root-ratom id-so-far)]
+    (if-not (and (:expanded topic-map) (:children topic-map))
+      id-so-far
+      (let [next-child-vector (:children topic-map)
+            next-index (dec (count next-child-vector))
+            next-id (insert-child-index-into-parent-id id-so-far next-index)]
+        (recur next-id next-child-vector)))))
 
 (defn remove-top-level-sibling!
   "Remove one of the top level topics from the tree. Return a copy of the
@@ -341,6 +386,30 @@
           (prune-topic! root-ratom id-of-existing-subtree)))
     (scroll-ele-into-view id-of-new-subtree)))
 
+(defn promote-headline
+  [root-ratom evt topic-ratom span-id]
+  (println "promote-headline"))
+
+(defn demote-headline
+  [root-ratom span-id]
+  ;(println "demote-headline")
+  (when-let [previous-sibling (id-of-previous-sibling span-id)]
+    (expand-node root-ratom previous-sibling)
+    (let [sibling-child-count (count-children root-ratom previous-sibling)
+          editor-id (change-tree-id-type span-id "editor")
+          caret-position (get-caret-position editor-id)
+          sibling-parts (tree-id->tree-id-parts previous-sibling)
+          with-added-leaf (conj (remove-last sibling-parts) sibling-child-count)
+          demoted-prefix (tree-id-parts->tree-id-string with-added-leaf)
+          demoted-id (str demoted-prefix topic-separator "topic")
+          demoted-editor-id (str demoted-prefix topic-separator "editor")]
+      (move-branch! root-ratom span-id demoted-id)
+      (r/after-render
+        (fn []
+          (focus-editor-for-id demoted-editor-id)
+          (.setSelectionRange (get-element-by-id demoted-editor-id)
+                              caret-position caret-position))))))
+
 ;;;-----------------------------------------------------------------------------
 ;;; Functions to handle keystroke events.
 
@@ -361,43 +430,6 @@
         (fn []
           (swap-display-properties id-of-new-label id-of-new-editor)
           (.focus (get-element-by-id id-of-new-editor)))))))
-
-(defn id-of-previous-sibling
-  "Return the id of the previous sibling of this tree id. Returns nil if this
-  tree id is the first (zero'th) in a group of siblings."
-  [current-sibling-id]
-  (let [parts (tree-id->tree-id-parts current-sibling-id)
-        last-path-index (int (nth parts (- (count parts) 2)))]
-    (when (pos? last-path-index)
-      (tree-id-parts->tree-id-string
-        (into (remove-last-two parts) [(dec last-path-index) "topic"])))))
-
-(defn id-of-last-visible-child
-  "Return the id of the last visible child of the branch starting at tree-id.
-  The last visible child may be many levels deeper in the tree."
-  [root-ratom tree-id]
-  (loop [id-so-far tree-id
-         topic-map (get-topic root-ratom id-so-far)]
-    (if-not (and (:expanded topic-map) (:children topic-map))
-      id-so-far
-      (let [next-child-vector (:children topic-map)
-            next-index (dec (count next-child-vector))
-            next-id (insert-child-index-into-parent-id id-so-far next-index)]
-        (recur next-id next-child-vector)))))
-
-(defn focus-editor-for-id
-  "Focus the editor associated with the id. Assumes the topic is visible and
-  that the editor is not already focused. WILL UNFOCUS EDITOR IF IT IS ALREADY
-  FOCUSED."
-  [tree-id]
-  (println "focus-editor-on-id: tree-id: " tree-id)
-  (when tree-id
-    (let [editor-id (change-tree-id-type tree-id "editor")
-          _ (println "    editor-id: " editor-id)
-          label-id (change-tree-id-type tree-id "label")
-          _ (println "    label-id: " label-id)]
-      (swap-display-properties label-id editor-id)
-      (.focus (get-element-by-id editor-id)))))
 
 (defn handle-backspace-key-down
   "Handle a key-down event for the Backspace key. Tries to intelligently handle
@@ -424,66 +456,14 @@
             (focus-editor-for-id
               (id-of-last-visible-child root-ratom (id-of-previous-sibling span-id)))))))))
 
-(defn get-caret-position
-  [ele-id]
-  (.-selectionStart (get-element-by-id ele-id)))
-
-(defn promote-headline
-  [root-ratom evt topic-ratom span-id]
-  (println "promote-headline"))
-
-(defn demote-headline
-  [root-ratom evt topic-ratom span-id]
-  (println "demote-headline")
-  (if (and (id-of-previous-sibling span-id) (has-children root-ratom (id-of-previous-sibling span-id)))
-    (println "    Has children")
-    (println "    Has NO children"))
-  (when-let [previous-sibling (id-of-previous-sibling span-id)]
-    (expand-node root-ratom previous-sibling)
-    (let [sibling-child-count (count-children root-ratom previous-sibling)
-          _ (println "    sibling-child-count: " sibling-child-count)
-          editor-id (change-tree-id-type span-id "editor")
-          _ (println "    editor-id: " editor-id)
-          editor-display-property (style-property-value editor-id "display")
-          _ (println "    editor-display-property: " editor-display-property)
-          was-editing? (= editor-display-property "initial")
-          _ (println "    was-editing? : " was-editing?)
-          caret-position (when was-editing? (get-caret-position editor-id))
-          _ (println "    caret-position: " caret-position)
-          sibling-parts (tree-id->tree-id-parts previous-sibling)
-          _ (println "    sibling-parts: " sibling-parts)
-          with-added-leaf (conj (remove-last sibling-parts) sibling-child-count)
-          _ (println "    with-added-leaf: " with-added-leaf)
-          demoted-prefix (tree-id-parts->tree-id-string with-added-leaf)
-          _ (println "    demoted-prefix: " demoted-prefix)
-          demoted-id (str demoted-prefix topic-separator "topic")
-          demoted-editor-id (str demoted-prefix topic-separator "editor")]
-      (move-branch! root-ratom span-id demoted-id)
-      (r/after-render
-        (fn []
-          (focus-editor-for-id demoted-editor-id)
-          (println "    focused: now trying to set caret")
-          (when was-editing?
-            (println "    was editing: demoted-editor-id: " demoted-editor-id ", caret-position: " caret-position)
-            (println "    demoted-editor-element: " (get-element-by-id demoted-editor-id))
-            (.setSelectionRange (get-element-by-id demoted-editor-id) caret-position caret-position)))))))
-
 (defn handle-tab-key-down
   [root-ratom evt topic-ratom span-id]
-  (println "handle-tab-key-down: span-id: " span-id)
+  ;(println "handle-tab-key-down: span-id: " span-id)
   (.preventDefault evt)
   (let [evt-map (unpack-keyboard-event evt)]
     (if (:shift-key evt-map)
       (promote-headline root-ratom evt topic-ratom span-id)
-      (demote-headline root-ratom evt topic-ratom span-id))
-    ; (cond
-    ;   (and (:shift-key evt-map)
-    ;        (:cmd-key evt-map)
-    ;        (:alt-key evt-map)) (promote-headline root-ratom evt topic-ratom span-id)
-    ;   (and (:cmd-key evt-map)
-    ;        (:alt-key evt-map)) (demote-headline root-ratom evt topic-ratom span-id)
-    ;   :default nil)
-    ))
+      (demote-headline root-ratom span-id))))
 
 (defn handle-key-down
   "Detect key-down events and dispatch them to the appropriate handlers."
