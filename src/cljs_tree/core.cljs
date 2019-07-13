@@ -599,22 +599,38 @@
               :style   {:display :initial}
               :class   "tree-control--topic-label"
               :for     editor-id
+              ; debugging
               ;:onMouseOver #(println "id: " span-id ", label-id: " label-id ", editor-id: " editor-id)
               :onClick (fn [e]
-                         (swap-display-properties label-id editor-id)
-                         (.focus (get-element-by-id editor-id))
-                         (.stopPropagation e))}
+                         (let [ed-ele (get-element-by-id editor-id)
+                               ofs (.-focusOffset (.getSelection js/window))]
+                           (swap-display-properties label-id editor-id)
+                           (.focus ed-ele)
+                           (.setSelectionRange ed-ele ofs ofs)
+                           (.stopPropagation e)))}
       @topic-ratom]
 
-     [:input {:type      "text"
-              :id        editor-id
-              :class     "tree-control--topic-editor"
-              :style     {:display :none}
-              :onKeyDown #(handle-key-down % root-ratom topic-ratom topic-id)
-              :onFocus   #(.stopPropagation %)
-              :onBlur    #(swap-display-properties label-id editor-id)
-              :onChange  #(reset! topic-ratom (event->target-value %))
-              :value     @topic-ratom}]]))
+     [:input {:type         "text"
+              :id           editor-id
+              :class        "tree-control--topic-editor"
+              :style        {:display :none} ; :overflow-y :hidden}
+              :autoComplete "off"
+              :onKeyDown    #(handle-key-down % root-ratom topic-ratom topic-id)
+              :onFocus      #(.stopPropagation %)
+              :onBlur       #(swap-display-properties label-id editor-id)
+              ; See https://stackoverflow.com/questions/454202/creating-a-textarea-with-auto-resize
+              ; for an automatically re-sizing text area.
+              :onChange     ;(fn [evt]
+                             ; (reset! topic-ratom (event->target-value evt))
+                              ;(let [ele (event->target-element evt)]
+                              ;  (set! (-> ele .-style .-height) "auto")
+                              ;  (println "should be auto: " (style-property-value editor-id "height"))
+                              ;  (println "new height: " (str (.-scrollHeight ele) "px"))
+                              ;  (set! (-> ele .-style .-height) (str (.-scrollHeight ele) "px")
+
+                              ;        );))
+              #(reset! topic-ratom (event->target-value %))
+              :value        @topic-ratom}]]))
 
 (defn dom-ids-for-row
   "Return a map of all of the ids used in building a row of the control."
