@@ -587,6 +587,15 @@
              :default [:div invisible-chevron-props (str \u25BA \space)])]
     es))
 
+(defn resize-textarea
+  "Resize the element vertically."
+  [text-id]
+  (when-let [ele (get-element-by-id text-id)]
+    (let [style (.-style ele)]
+      (set! (.-overflow style) "hidden")
+      (set! (.-height style) "5px")
+      (set! (.-height style) (str (.-scrollHeight ele) "px")))))
+
 (defn topic-info-div
   "Build the textual/interactive part of a topic/headline."
   [root-ratom sub-tree-ratom ids-for-row]
@@ -595,42 +604,34 @@
         editor-id (:editor-id ids-for-row)
         topic-id (:topic-id ids-for-row)]
     [:div.tree-control--topic-info-div
-     [:label {:id      label-id
-              :style   {:display :initial}
-              :class   "tree-control--topic-label"
-              :for     editor-id
-              ; debugging
-              ;:onMouseOver #(println "id: " span-id ", label-id: " label-id ", editor-id: " editor-id)
-              :onClick (fn [e]
-                         (let [ed-ele (get-element-by-id editor-id)
-                               ofs (.-focusOffset (.getSelection js/window))]
-                           (swap-display-properties label-id editor-id)
-                           (.focus ed-ele)
-                           (.setSelectionRange ed-ele ofs ofs)
-                           (.stopPropagation e)))}
+     [:label.tree-control--topic-label
+      {:id      label-id
+       :style   {:display :initial}
+       :for     editor-id
+       ; debugging
+       ;:onMouseOver #(println "id: " span-id ", label-id: " label-id ", editor-id: " editor-id)
+       :onClick (fn [e]
+                  (let [ed-ele (get-element-by-id editor-id)
+                        ofs (.-focusOffset (.getSelection js/window))]
+                    (swap-display-properties label-id editor-id)
+                    (.focus ed-ele)
+                    (.setSelectionRange ed-ele ofs ofs)
+                    (.stopPropagation e)))}
       @topic-ratom]
 
-     [:input {:type         "text"
-              :id           editor-id
-              :class        "tree-control--topic-editor"
-              :style        {:display :none} ; :overflow-y :hidden}
-              :autoComplete "off"
-              :onKeyDown    #(handle-key-down % root-ratom topic-ratom topic-id)
-              :onFocus      #(.stopPropagation %)
-              :onBlur       #(swap-display-properties label-id editor-id)
-              ; See https://stackoverflow.com/questions/454202/creating-a-textarea-with-auto-resize
-              ; for an automatically re-sizing text area.
-              :onChange     ;(fn [evt]
-                             ; (reset! topic-ratom (event->target-value evt))
-                              ;(let [ele (event->target-element evt)]
-                              ;  (set! (-> ele .-style .-height) "auto")
-                              ;  (println "should be auto: " (style-property-value editor-id "height"))
-                              ;  (println "new height: " (str (.-scrollHeight ele) "px"))
-                              ;  (set! (-> ele .-style .-height) (str (.-scrollHeight ele) "px")
-
-                              ;        );))
-              #(reset! topic-ratom (event->target-value %))
-              :value        @topic-ratom}]]))
+     [:textarea.tree-control--topic-editor
+      {:id           editor-id
+       :style        {:display :none}
+       :autoComplete "off"
+       :onKeyDown    #(handle-key-down % root-ratom topic-ratom topic-id)
+       :onKeyUp      #(resize-textarea editor-id)
+       :onFocus      (fn on-focus [evt]
+                       ; Override default number of rows (2).
+                       (resize-textarea editor-id)
+                       (.stopPropagation evt))
+       :onBlur       #(swap-display-properties label-id editor-id)
+       :onChange     #(reset! topic-ratom (event->target-value %))
+       :value        @topic-ratom}]]))
 
 (defn dom-ids-for-row
   "Return a map of all of the ids used in building a row of the control."
