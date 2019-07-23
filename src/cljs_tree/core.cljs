@@ -18,20 +18,35 @@
 ;;;-----------------------------------------------------------------------------
 ;;; Global Data and Constants
 
-; A character that is unlikely to be typed in normal operation. In this case,
-; it is a half triangular colon modifier character. Used as a separator when
-; building path strings through the hierarchy.
-(def ^{:constant true} topic-separator \u02D1)
+(defn topic-separator
+  "A character that is unlikely to be typed in normal operation. In this case
+  it is a half trianglular colon modifier character. Used as a separator when
+  building path strings through the hierarchy."
+  []
+  \u02D1)
 
-;(def id-of-first-top-level-topic (str "root" topic-separator 0 topic-separator "topic"))
-(def id-of-second-top-level-topic (str "root" topic-separator 1 topic-separator "topic"))
+;(def id-of-first-top-level-topic (str "root" (topic-separator) 0 (topic-separator) "topic"))
+(defn id-of-second-top-level-topic
+  []
+  (str "root" (topic-separator) 1 (topic-separator) "topic"))
 
-;; The amount of indentation (in rems) to accumulate for each level
-;; down the tree.
-(def ^{:constant true} indent-increment 1.5)
+(defn root-parts
+  "Returns a vector of the components used to build various ids of the root."
+  []
+  ["root" "0"])
 
-(def empty-test-topic {:topic "Empty Test Topic"})
+(defn indent-increment
+  "Return the amount of indentation (in rems) to add for each level
+  down the tree."
+  []
+  1.5)
+
 ;(def empty-topic {:topic ""})
+(defn empty-test-topic
+  "Return the map to be used for an empty test topic."
+  []
+  ; This is just the value to use during development and testing.
+  {:topic "Empty Test Topic"})
 
 ;;;-----------------------------------------------------------------------------
 ;;; Utilities
@@ -72,11 +87,27 @@
   [ele-id]
   (.-selectionStart (get-element-by-id ele-id)))
 
+(defn is-ele-visible?
+  "Return non-nil if the element is visible. Note that, unlike many of the
+  functions in this section, this function expects a DOM element, not an id."
+  [ele]
+  ;(println "is-ele-visible?: ele: " ele)
+  (let [r (.getBoundingClientRect ele)
+        doc-ele (.-documentElement js/document)
+        wdw-height (or (.-innerHeight js/window) (-.clientHeight doc-ele))
+        wdw-width (or (.-innerWidth js/window) (.-clientWidth doc-ele))
+        result (and (>= (.-left r) 0) (>= (.-top r) 0)
+                    (<= (+ (.-left r) (.-width r)) wdw-width)
+                    (<= (+ (.-top r) (.-height r)) wdw-height))]
+    result))
+
 (defn scroll-ele-into-view
-  "Scroll the element with the given id into view."
+  "Scroll the element with the given id into view. Note: This must be the id
+  of a DOM element, not an element in the data tree."
   [ele-id]
   (when-let [ele (get-element-by-id ele-id)]
-    (.scrollIntoView ele)))
+    (when-not (is-ele-visible? ele)
+      (.scrollIntoView ele))))
 
 (defn style-property-value
   "Return the value of the property for the element with the given id."
@@ -126,21 +157,21 @@
   a vector of the parts."
   [id]
   (when (and id (seq id))
-    (s/split id topic-separator)))
+    (s/split id (topic-separator))))
 
 (defn tree-id-parts->tree-id-string
   "Return a string formed by interposing the topic-separator between the
   elements of the input vector."
   [v]
   (when (and v (vector? v) (seq v))
-    (str (s/join topic-separator v))))
+    (str (s/join (topic-separator) v))))
 
 (defn is-top-tree-id?
   "Return true if tree-id represents to first sibling at the root level of
   the tree. (This topic is always displayed at the top of the tree -- hence
   the function name.)"
   [tree-id]
-  (= ["root" "0"] (remove-last (tree-id->tree-id-parts tree-id))))
+  (= (root-parts) (remove-last (tree-id->tree-id-parts tree-id))))
 
 (defn nav-index-vector->tree-id-string
   "Creates a DOM id string from a vector of indices used to navigate to
@@ -148,9 +179,9 @@
   is used."
   [nav-index-vector & type-to-use]
   (let [id-type (or (first type-to-use) "topic")
-        result (str "root" topic-separator
+        result (str "root" (topic-separator)
                     (tree-id-parts->tree-id-string nav-index-vector)
-                    topic-separator id-type)]
+                    (topic-separator) id-type)]
     result))
 
 (defn tree-id->nav-index-vector
@@ -183,7 +214,7 @@
   [id new-type]
   (let [parts (tree-id->tree-id-parts id)
         shortened (remove-last parts)]
-    (str (tree-id-parts->tree-id-string shortened) (str topic-separator new-type))))
+    (str (tree-id-parts->tree-id-string shortened) (str (topic-separator) new-type))))
 
 (defn insert-child-index-into-parent-id
   "Return a new id where the index of the child in the parents children vector
@@ -247,7 +278,7 @@
   [root-ratom topic-id]
   (count (has-children root-ratom topic-id)))
 
-(defn is-expanded?
+(defn expanded?
   "Return true if the subtree is in the expanded state (implying that it
   has children). Returns nil if the subtree is not expanded."
   [root-ratom tree-id]
@@ -378,13 +409,15 @@
 (defn move-branch!
   "Move an existing branch to a new location."
   [root-ratom id-of-existing-subtree id-of-new-subtree]
-  (let [topic-to-move (get-topic root-ratom id-of-existing-subtree)]
+  ;(println "move-branch!")
+  (let [topic-to-move (get-topic root-ratom id-of-existing-subtree)
+        id-to-focus (change-tree-id-type id-of-new-subtree "label")]
     (if (lower? id-of-existing-subtree id-of-new-subtree)
       (do (prune-topic! root-ratom id-of-existing-subtree)
           (graft-topic! root-ratom id-of-new-subtree topic-to-move))
       (do (graft-topic! root-ratom id-of-new-subtree topic-to-move)
           (prune-topic! root-ratom id-of-existing-subtree)))
-    (scroll-ele-into-view id-of-new-subtree)))
+    (scroll-ele-into-view id-to-focus)))
 
 (defn promote-headline
   [root-ratom evt topic-ratom span-id]
@@ -401,8 +434,8 @@
           sibling-parts (tree-id->tree-id-parts previous-sibling)
           with-added-leaf (conj (remove-last sibling-parts) sibling-child-count)
           demoted-prefix (tree-id-parts->tree-id-string with-added-leaf)
-          demoted-id (str demoted-prefix topic-separator "topic")
-          demoted-editor-id (str demoted-prefix topic-separator "editor")]
+          demoted-id (str demoted-prefix (topic-separator) "topic")
+          demoted-editor-id (str demoted-prefix (topic-separator) "editor")]
       (move-branch! root-ratom span-id demoted-id)
       (r/after-render
         (fn []
@@ -419,10 +452,10 @@
   [root-ratom span-id]
   ; If the topic span has children, add a new child in the zero-position
   ; Else add a new sibling below the current topic
-  (let [id-of-new-child (if (is-expanded? root-ratom span-id)
+  (let [id-of-new-child (if (expanded? root-ratom span-id)
                           (insert-child-index-into-parent-id span-id 0)
                           (increment-leaf-index span-id))]
-    (graft-topic! root-ratom id-of-new-child empty-test-topic)
+    (graft-topic! root-ratom id-of-new-child (empty-test-topic))
     (let [id-of-new-editor (change-tree-id-type id-of-new-child "editor")
           id-of-new-label (change-tree-id-type id-of-new-child "label")]
       ;; Wait for rendering to catch up.
@@ -439,7 +472,7 @@
   (when (zero? (count @topic-ratom))
     (.preventDefault evt)
     (if (is-top-tree-id? span-id)
-      (when (get-topic root-ratom id-of-second-top-level-topic)
+      (when (get-topic root-ratom (id-of-second-top-level-topic))
         ; Just delete the top-most headline.
         (println "Pruning top level headline")
         (prune-topic! root-ratom span-id))
@@ -458,7 +491,6 @@
 
 (defn handle-tab-key-down
   [root-ratom evt topic-ratom span-id]
-  ;(println "handle-tab-key-down: span-id: " span-id)
   (.preventDefault evt)
   (let [evt-map (unpack-keyboard-event evt)]
     (if (:shift-key evt-map)
@@ -559,7 +591,7 @@
 
 (defn indent-div [indent-id]
   (let [id-v (tree-id->nav-index-vector indent-id)
-        indent (* indent-increment (dec (count id-v)))
+        indent (* (indent-increment) (dec (count id-v)))
         indent-style (str 0 " " 0 " " indent "rem")]
     ^{:key indent-id}
     [:div#indent-id.tree-control--indent-div {:style {:flex indent-style}}]))
@@ -609,7 +641,7 @@
        :style   {:display :initial}
        :for     editor-id
        ; debugging
-       ;:onMouseOver #(println "id: " span-id ", label-id: " label-id ", editor-id: " editor-id)
+       ;:onMouseOver #(println "topic-id: " topic-id ", label-id: " label-id ", editor-id: " editor-id)
        :onClick (fn [e]
                   (let [ed-ele (get-element-by-id editor-id)
                         ofs (.-focusOffset (.getSelection js/window))]

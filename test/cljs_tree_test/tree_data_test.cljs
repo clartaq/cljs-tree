@@ -95,15 +95,15 @@
       (is (seq (ct/has-children ratom (ct/tree-id-parts->tree-id-string ["root" "2" 0 4 "topic"])))))))
 
 (deftest is-expanded?-test
-  (testing "The 'is-expanded?' function")
+  (testing "The 'expanded?' function")
   (let [ratom (r/atom (:tree a-tree))]
-    (is (nil? (ct/is-expanded? ratom (ct/tree-id-parts->tree-id-string ["root" "0" "topic"]))))
-    (is (thrown? js/Error (ct/is-expanded? ratom nil)))
-    (is (thrown? js/Error (ct/is-expanded? nil (ct/tree-id-parts->tree-id-string ["root" "0" "topic"]))))
-    (is (true? (ct/is-expanded? ratom (ct/tree-id-parts->tree-id-string ["root" "1" "topic"]))))
-    (is (nil? (ct/is-expanded? ratom (ct/tree-id-parts->tree-id-string ["root" "1" 2 4 "topic"]))))
-    (is (nil? (ct/is-expanded? ratom (ct/tree-id-parts->tree-id-string ["root" "1" 2 "topic"]))))
-    (is (true? (ct/is-expanded? ratom (ct/tree-id-parts->tree-id-string ["root" "2" 0 4 "topic"]))))))
+    (is (nil? (ct/expanded? ratom (ct/tree-id-parts->tree-id-string ["root" "0" "topic"]))))
+    (is (thrown? js/Error (ct/expanded? ratom nil)))
+    (is (thrown? js/Error (ct/expanded? nil (ct/tree-id-parts->tree-id-string ["root" "0" "topic"]))))
+    (is (true? (ct/expanded? ratom (ct/tree-id-parts->tree-id-string ["root" "1" "topic"]))))
+    (is (nil? (ct/expanded? ratom (ct/tree-id-parts->tree-id-string ["root" "1" 2 4 "topic"]))))
+    (is (nil? (ct/expanded? ratom (ct/tree-id-parts->tree-id-string ["root" "1" 2 "topic"]))))
+    (is (true? (ct/expanded? ratom (ct/tree-id-parts->tree-id-string ["root" "2" 0 4 "topic"]))))))
 
 (deftest expand-node-test
   (testing "The 'expand-node' function"
