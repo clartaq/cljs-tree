@@ -2,7 +2,7 @@
   (:require [cljs-tree.core :as ct]
             [cljs.test :refer-macros [deftest is testing]]))
 
-(defonce ts ct/topic-separator)
+(defonce ts (ct/topic-separator))
 
 (deftest tree-id->tree-id-parts-test
   (testing "The 'tree-id->tree-id-parts' function")
