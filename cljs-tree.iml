@@ -30,9 +30,9 @@
     <orderEntry type="library" name="Leiningen: clojure-complete:0.2.5" level="project" />
     <orderEntry type="library" name="Leiningen: co.deps/ring-etag-middleware:0.2.0" level="project" />
     <orderEntry type="library" name="Leiningen: com.bhauman/cljs-test-display:0.1.1" level="project" />
-    <orderEntry type="library" name="Leiningen: com.bhauman/figwheel-core:0.2.1" level="project" />
-    <orderEntry type="library" name="Leiningen: com.bhauman/figwheel-main:0.2.1" level="project" />
-    <orderEntry type="library" name="Leiningen: com.bhauman/figwheel-repl:0.2.1" level="project" />
+    <orderEntry type="library" name="Leiningen: com.bhauman/figwheel-core:0.2.3" level="project" />
+    <orderEntry type="library" name="Leiningen: com.bhauman/figwheel-main:0.2.3" level="project" />
+    <orderEntry type="library" name="Leiningen: com.bhauman/figwheel-repl:0.2.3" level="project" />
     <orderEntry type="library" name="Leiningen: com.bhauman/rebel-readline-cljs:0.1.4" level="project" />
     <orderEntry type="library" name="Leiningen: com.bhauman/rebel-readline:0.1.4" level="project" />
     <orderEntry type="library" name="Leiningen: com.bhauman/spell-spec:0.1.1" level="project" />

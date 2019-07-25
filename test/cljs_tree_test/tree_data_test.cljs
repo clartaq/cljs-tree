@@ -3,6 +3,7 @@
 
 (ns ^:figwheel-always cljs-tree-test.tree-data-test
   (:require [cljs-tree.core :as ct]
+            [cljs-tree.demo-hierarchy :as dh]
             [cljs.test :refer-macros [deftest is testing]]
             [reagent.core :as r]))
 
@@ -350,3 +351,15 @@
       (is (= (ct/tree-id-parts->tree-id-string ["root" 2 0 4 0 "topic"])
              (ct/id-of-last-visible-child ratom
                                           (ct/tree-id-parts->tree-id-string ["root" 2 0 4 "topic"])))))))
+
+(deftest id-of-last-visible-child-in-demo-hierarchy-test
+  (testing "The 'id-of-last-visible-child' function."
+    (let [local-map (:tree @dh/test-hierarchy)
+          ratom (r/atom local-map)]
+
+      ; This failed in an early version of the function.
+      (let [parent-id (ct/tree-id-parts->tree-id-string ["root" 0 1 "topic"])
+            last-visible-child-id (ct/tree-id-parts->tree-id-string ["root" 0 1 2 0 "topic"])]
+      (ct/expand-node ratom parent-id)
+      (is (= last-visible-child-id
+             (ct/id-of-last-visible-child ratom parent-id)))))))

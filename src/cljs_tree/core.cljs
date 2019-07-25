@@ -5,7 +5,7 @@
 
 (ns cljs-tree.core
   (:require
-    ;[cljs.pprint :as ppr]
+    [cljs.pprint :as ppr]
     [cljs-tree.demo-hierarchy :as h]
     [cljs-tree.vector-utils :refer [delete-at remove-first remove-last
                                     remove-last-two insert-at replace-at
@@ -173,6 +173,23 @@
   [tree-id]
   (= (root-parts) (remove-last (tree-id->tree-id-parts tree-id))))
 
+(defn is-top-visible-tree-id?
+  "Return the same result as is-top-tree-id? since the top of the tree is
+  always visible."
+  [root-ratom tree-id]
+  (is-top-tree-id? tree-id))
+
+(defn is-bottom-tree-id?
+  "Return true if the node with the given id is the bottom-most node
+  in the tree."
+  [root-ratom tree-id])
+
+(defn is-bottom-visible-tree-id?
+  "Return true if the node with the given id is the bottom visible node in
+  the tree; false otherwise."
+  [root-ratom tree-id]
+  false)
+
 (defn nav-index-vector->tree-id-string
   "Creates a DOM id string from a vector of indices used to navigate to
   the topic. If no id type is specified, the default value of 'topic'
@@ -332,14 +349,32 @@
   "Return the id of the last visible child of the branch starting at tree-id.
   The last visible child may be many levels deeper in the tree."
   [root-ratom tree-id]
+  ;(println "id-of-last-visible-child: tree-id: " tree-id)
   (loop [id-so-far tree-id
          topic-map (get-topic root-ratom id-so-far)]
     (if-not (and (:expanded topic-map) (:children topic-map))
       id-so-far
       (let [next-child-vector (:children topic-map)
             next-index (dec (count next-child-vector))
+            next-topic (get next-child-vector next-index)
             next-id (insert-child-index-into-parent-id id-so-far next-index)]
-        (recur next-id next-child-vector)))))
+        (recur next-id next-topic)))))
+
+(defn previous-visible-node
+  "Return the tree id of the visible node one line up."
+  [root-ratom current-node-id]
+  ;(println "previous-visible-node: current-node-id: " current-node-id)
+  (let [id-parts (remove-last (tree-id->tree-id-parts current-node-id))
+        last-part (js/parseInt (last id-parts))
+        short-parts (remove-last id-parts)
+        new-id (if (zero? last-part)
+                 ; The first child under a parent.
+                 (tree-id-parts->tree-id-string (conj short-parts "topic"))
+                 (id-of-last-visible-child
+                   root-ratom
+                   (tree-id-parts->tree-id-string
+                     (conj (conj short-parts (dec last-part)) "topic"))))]
+    new-id))
 
 (defn remove-top-level-sibling!
   "Remove one of the top level topics from the tree. Return a copy of the
@@ -446,6 +481,31 @@
 ;;;-----------------------------------------------------------------------------
 ;;; Functions to handle keystroke events.
 
+(defn handle-arrow-up-key-down
+  "Respond to an up arrow key-down event my moving the editor and focus to
+  the next higher up visible headline."
+  [root-ratom evt topic-ratom span-id]
+  ;(println "handle-arrow-up-key-down")
+  ;(println "    @topic-ratom: " @topic-ratom ", span-id: " span-id)
+  (when-not (is-top-visible-tree-id? root-ratom span-id)
+    (println "Gonna move on up")
+    (let [editor-id (change-tree-id-type span-id "editor")
+          saved-cursor-position (.-selectionStart (get-element-by-id editor-id))]
+      (let [previous-visible-topic (previous-visible-node root-ratom span-id)
+            previous-visible-editor (change-tree-id-type previous-visible-topic "editor")]
+        (focus-editor-for-id previous-visible-topic)
+        (scroll-ele-into-view previous-visible-editor)
+        (.setSelectionRange (get-element-by-id previous-visible-editor)
+                            saved-cursor-position saved-cursor-position))))
+  (.preventDefault evt))
+
+(defn handle-arrow-down-key-down
+  [root-ratom evt topic-ratom span-id]
+  (println "handle-arrow-down-key-down")
+  (when-not (is-bottom-visible-tree-id? root-ratom span-id)
+    (println "    Gonna move on down."))
+  (.preventDefault evt))
+
 (defn handle-enter-key-down
   "Handle a key-down event for the Enter/Return key. Insert a new headline
   in the tree and focus it, ready for editing."
@@ -500,14 +560,17 @@
 (defn handle-key-down
   "Detect key-down events and dispatch them to the appropriate handlers."
   [evt root-ratom topic-ratom span-id]
-  (let [evt-map (unpack-keyboard-event evt)]
+  (let [evt-map (unpack-keyboard-event evt)
+        the-key (:key evt-map)]
     (cond
-      (= (:key evt-map) "Enter") (handle-enter-key-down root-ratom span-id)
-      (= (:key evt-map) "Delete") (println "Delete")
-      (= (:key evt-map) "Backspace") (handle-backspace-key-down
-                                       root-ratom evt topic-ratom span-id)
-      (= (:key evt-map) "Tab") (handle-tab-key-down root-ratom evt
-                                                    topic-ratom span-id)
+      (= the-key "Enter") (handle-enter-key-down root-ratom span-id)
+      (= the-key "Delete") (println "Delete")
+      (= the-key "Backspace") (handle-backspace-key-down
+                                root-ratom evt topic-ratom span-id)
+      (= the-key "Tab") (handle-tab-key-down root-ratom evt
+                                             topic-ratom span-id)
+      (= the-key "ArrowUp") (handle-arrow-up-key-down root-ratom evt topic-ratom span-id)
+      (= the-key "ArrowDown") (handle-arrow-down-key-down root-ratom evt topic-ratom span-id)
       :default nil)))
 
 ;;;-----------------------------------------------------------------------------
@@ -637,18 +700,18 @@
         topic-id (:topic-id ids-for-row)]
     [:div.tree-control--topic-info-div
      [:label.tree-control--topic-label
-      {:id      label-id
-       :style   {:display :initial}
-       :for     editor-id
+      {:id          label-id
+       :style       {:display :initial}
+       :for         editor-id
        ; debugging
-       ;:onMouseOver #(println "topic-id: " topic-id ", label-id: " label-id ", editor-id: " editor-id)
-       :onClick (fn [e]
-                  (let [ed-ele (get-element-by-id editor-id)
-                        ofs (.-focusOffset (.getSelection js/window))]
-                    (swap-display-properties label-id editor-id)
-                    (.focus ed-ele)
-                    (.setSelectionRange ed-ele ofs ofs)
-                    (.stopPropagation e)))}
+       :onMouseOver #(println "topic-id: " topic-id ", label-id: " label-id ", editor-id: " editor-id)
+       :onClick     (fn [e]
+                      (let [ed-ele (get-element-by-id editor-id)
+                            ofs (.-focusOffset (.getSelection js/window))]
+                        (swap-display-properties label-id editor-id)
+                        (.focus ed-ele)
+                        (.setSelectionRange ed-ele ofs ofs)
+                        (.stopPropagation e)))}
       @topic-ratom]
 
      [:textarea.tree-control--topic-editor
