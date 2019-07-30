@@ -349,7 +349,7 @@
   "Return the id of the last visible child of the branch starting at tree-id.
   The last visible child may be many levels deeper in the tree."
   [root-ratom tree-id]
-  (println "id-of-last-visible-child: tree-id: " tree-id)
+  ;(println "id-of-last-visible-child: tree-id: " tree-id)
   (loop [id-so-far tree-id
          topic-map (get-topic root-ratom id-so-far)]
     (if-not (and (:expanded topic-map) (:children topic-map))
@@ -379,7 +379,7 @@
 (defn remove-top-level-sibling!
   "Remove one of the top level topics from the tree. Return a copy of the
   branch (entire tree) with the sibling removed or nil if there was a problem
-  with the arguments."
+  with the arguments. Will not remove the last remaining top-level headline."
   [root-ratom sibling-index]
   (when (and (or (instance? reagent.ratom/RAtom root-ratom)
                  (instance? reagent.ratom/RCursor root-ratom))
@@ -427,7 +427,7 @@
 ;; we don't have an always present "root" node at the top of the control.
 (defn add-child!
   "Insert the given topic at the specified index in the parents vector of
-  children. No data is deleted."
+  children. Return a new copy of the parent that includes the new data."
   [parent-topic-ratom index topic-to-add]
   (if (vector? @parent-topic-ratom)
     (swap! parent-topic-ratom insert-at index topic-to-add)
@@ -460,96 +460,24 @@
 ;;;-----------------------------------------------------------------------------
 ;;; Functions to handle keystroke events. Editing commands.
 
-;(defn move-focus-up-one-line
-;  "Respond to an up arrow key-down event my moving the editor and focus to
-;  the next higher up visible headline."
-;  [root-ratom evt topic-ratom span-id]
-;  ;(println "handle-arrow-up-key-down")
-;  ;(println "    @topic-ratom: " @topic-ratom ", span-id: " span-id)
-;  (when-not (is-top-visible-tree-id? root-ratom span-id)
-;    (println "Gonna move on up")
-;    (let [editor-id (change-tree-id-type span-id "editor")
-;          saved-cursor-position (.-selectionStart (get-element-by-id editor-id))]
-;      (let [previous-visible-topic (previous-visible-node root-ratom span-id)
-;            previous-visible-editor (change-tree-id-type previous-visible-topic "editor")]
-;        (focus-editor-for-id previous-visible-topic)
-;        (scroll-ele-into-view previous-visible-editor)
-;        (.setSelectionRange (get-element-by-id previous-visible-editor)
-;                            saved-cursor-position saved-cursor-position))))
-;  (.preventDefault evt))
-
-; DELETING A TOP-LEVEL TOPIC DOESN'T WORK CORRECTLY
-;!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 (defn delete-one-character-before
   "Handle the special case when the current headline has no more characters.
   Delete it and any children, then move the editor focus to the headline
-  above it."
+  above it. Will not delete the last remaining top-level headline."
   [root-ratom evt topic-ratom span-id]
-  (println "delete-one-character-before: span-id: " span-id)
+  ;(println "delete-one-character-before: span-id: " span-id)
   (when (zero? (count @topic-ratom))
     (.preventDefault evt)
     (let [previous-visible-topic-id (previous-visible-node root-ratom span-id)
-          _ (println "    previous-visible-topic-id: " previous-visible-topic-id)
           previous-topic-value (get-topic root-ratom previous-visible-topic-id)
-          _ (println "    previous-visible-topic-value: " previous-topic-value)
           previous-topic-length (count (:topic previous-topic-value))
-          _ (println "    previous-topic-length: " previous-topic-length)
           previous-visible-editor-id (change-tree-id-type previous-visible-topic-id "editor")]
       (prune-topic! root-ratom span-id)
       (when-let [previous-visible-editor-ele (get-element-by-id previous-visible-editor-id)]
-        (println "    previous-visible-editor-id-ele: " previous-visible-editor-ele)
         (focus-editor-for-id previous-visible-topic-id)
         (scroll-ele-into-view previous-visible-editor-id)
         (.setSelectionRange previous-visible-editor-ele
                             previous-topic-length previous-topic-length)))))
-
-(defn old-delete-one-character-before
-  "Handle a key-down event for the Backspace key. Tries to intelligently handle
-  cases when the key is tapped in an empty topic by deciding what happens to
-  children of the deleted topic and where the focus should travel to."
-  [root-ratom evt topic-ratom span-id]
-  (when (zero? (count @topic-ratom))
-    (.preventDefault evt)
-    (if (is-top-tree-id? span-id)
-      (when (get-topic root-ratom (id-of-second-top-level-topic))
-        ; Just delete the top-most headline.
-        (println "Pruning top level headline")
-        (prune-topic! root-ratom span-id))
-      (do
-        (println "")
-        (prune-topic! root-ratom span-id)
-        (if-let [id-to-focus (id-of-previous-sibling span-id)]
-          (do
-            (println "id-to-focus branch")
-            (println "span-id: " span-id)
-            (println "id-to-focus: " id-to-focus)
-            (println "topic of id-to-focus: " (get-topic root-ratom id-to-focus))
-            (let [ele-to-focus (get-element-by-id (change-tree-id-type id-to-focus "editor"))
-                  _ (println "ele-to-focus: " ele-to-focus)
-                  _ (println "(.-value ele-to-focus): " (.-value ele-to-focus))
-                  character-count (count (.-value ele-to-focus))
-                  _ (println "character-count: " character-count)
-                  ]
-              (focus-editor-for-id
-                (id-of-last-visible-child root-ratom id-to-focus))
-              (.setSelectionRange ele-to-focus character-count character-count)))
-          (do
-            (println "no previous sibling branch")
-            (println "span-id: " span-id)
-            (let [id-of-previous-sibling (id-of-previous-sibling span-id)
-                  parts (tree-id->tree-id-parts span-id)
-                  short-parts (remove-last-two parts)
-                  parent-id (tree-id-parts->tree-id-string (conj short-parts "topic"))
-                  ele-to-focus (get-element-by-id (change-tree-id-type parent-id "editor"))
-                  _ (println "ele-to-focus: " ele-to-focus)
-                  _ (println "(.-value ele-to-focus): " (.-value ele-to-focus))
-                  character-count (count (.-value ele-to-focus))
-                  ]
-              (println "parent-id: " parent-id)
-              (println "id-of-previous-sibling: " id-of-previous-sibling)
-              (focus-editor-for-id parent-id)
-              (.setSelectionRange ele-to-focus character-count character-count))))))))
-; (id-of-last-visible-child root-ratom id-of-previous-sibling)))))))))
 
 (defn indent
   "Indent the current headline one level."
