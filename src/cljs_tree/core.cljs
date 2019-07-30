@@ -324,16 +324,21 @@
     (when (seq (select-keys @my-cursor [:expanded]))
       (swap! my-cursor update :expanded not))))
 
-(defn focus-editor-for-id
-  "Focus the editor associated with the id. Assumes the topic is visible and
-  that the editor is not already focused."
-  [tree-id]
+(defn focus-and-scroll-editor-for-id
+  "Focus the editor associated with the id (assumes that the label associated
+  with the id is visible). If needed, scroll the editor into view. If a caret
+  position is provided, place the editor caret at that position."
+  [tree-id & [caret-pos]]
   (when tree-id
     (let [editor-id (change-tree-id-type tree-id "editor")]
       (when-not (editing? editor-id)
         (let [label-id (change-tree-id-type tree-id "label")]
           (swap-display-properties label-id editor-id)
-          (.focus (get-element-by-id editor-id)))))))
+          (.focus (get-element-by-id editor-id))
+          (scroll-ele-into-view editor-id)
+          (when caret-pos
+            (.setSelectionRange (get-element-by-id editor-id)
+                                caret-pos caret-pos)))))))
 
 (defn id-of-previous-sibling
   "Return the id of the previous sibling of this tree id. Returns nil if this
@@ -473,16 +478,14 @@
           previous-topic-length (count (:topic previous-topic-value))
           previous-visible-editor-id (change-tree-id-type previous-visible-topic-id "editor")]
       (prune-topic! root-ratom span-id)
-      (when-let [previous-visible-editor-ele (get-element-by-id previous-visible-editor-id)]
-        (focus-editor-for-id previous-visible-topic-id)
-        (scroll-ele-into-view previous-visible-editor-id)
-        (.setSelectionRange previous-visible-editor-ele
-                            previous-topic-length previous-topic-length)))))
+      (when (get-element-by-id previous-visible-editor-id)
+        (focus-and-scroll-editor-for-id previous-visible-topic-id previous-topic-length)))))
 
 (defn indent
   "Indent the current headline one level."
   [root-ratom evt topic-ratom span-id]
   ;(println "indent")
+  (.preventDefault evt)
   (when-let [previous-sibling (id-of-previous-sibling span-id)]
     (expand-node root-ratom previous-sibling)
     (let [sibling-child-count (count-children root-ratom previous-sibling)
@@ -496,9 +499,7 @@
       (move-branch! root-ratom span-id demoted-id)
       (r/after-render
         (fn []
-          (focus-editor-for-id demoted-editor-id)
-          (.setSelectionRange (get-element-by-id demoted-editor-id)
-                              caret-position caret-position))))))
+          (focus-and-scroll-editor-for-id demoted-editor-id caret-position))))))
 
 (defn un-indent
   "Un-indent the current headline one level."
@@ -511,31 +512,27 @@
   [root-ratom evt topic-ratom span-id]
   ;(println "handle-arrow-up-key-down")
   ;(println "    @topic-ratom: " @topic-ratom ", span-id: " span-id)
+  (.preventDefault evt)
   (when-not (is-top-visible-tree-id? root-ratom span-id)
-    (println "Gonna move on up")
     (let [editor-id (change-tree-id-type span-id "editor")
           saved-cursor-position (.-selectionStart (get-element-by-id editor-id))]
-      (let [previous-visible-topic (previous-visible-node root-ratom span-id)
-            previous-visible-editor (change-tree-id-type previous-visible-topic "editor")]
-        (focus-editor-for-id previous-visible-topic)
-        (scroll-ele-into-view previous-visible-editor)
-        (.setSelectionRange (get-element-by-id previous-visible-editor)
-                            saved-cursor-position saved-cursor-position))))
-  (.preventDefault evt))
+      (let [previous-visible-topic (previous-visible-node root-ratom span-id)]
+        (focus-and-scroll-editor-for-id previous-visible-topic saved-cursor-position)))))
 
 (defn move-focus-down-one-line
   [root-ratom evt topic-ratom span-id]
-  (println "handle-arrow-down-key-down")
+  (println "move-focus-down-one-line")
+  (.preventDefault evt)
   (when-not (is-bottom-visible-tree-id? root-ratom span-id)
-    (println "    Gonna move on down."))
-  (.preventDefault evt))
+    (println "    Gonna move on down.")))
 
 (defn insert-new-headline-below
   "Handle a key-down event for the Enter/Return key. Insert a new headline
   in the tree and focus it, ready for editing."
-  [root-ratom span-id]
+  [root-ratom evt topic-ratom span-id]
   ; If the topic span has children, add a new child in the zero-position
   ; Else add a new sibling below the current topic
+  (.preventDefault evt)
   (let [id-of-new-child (if (expanded? root-ratom span-id)
                           (insert-child-index-into-parent-id span-id 0)
                           (increment-leaf-index span-id))]
@@ -555,13 +552,13 @@
         the-key (:key evt-map)
         shifted (:shift-key evt-map)]
     (cond
-      (= the-key "Enter") (insert-new-headline-below root-ratom span-id)
+      (= the-key "Enter") (insert-new-headline-below root-ratom evt topic-ratom span-id)
       (= the-key "Delete") (println "Delete")
       (= the-key "Backspace") (delete-one-character-before
                                 root-ratom evt topic-ratom span-id)
+      (= the-key "Tab") (indent root-ratom evt topic-ratom span-id)
       (and (= the-key "Tab")
-           shifted) (indent root-ratom evt topic-ratom span-id)
-      (= the-key "Tab") (un-indent root-ratom evt
+           shifted )(un-indent root-ratom evt
                                    topic-ratom span-id)
       (= the-key "ArrowUp") (move-focus-up-one-line root-ratom evt topic-ratom span-id)
       (= the-key "ArrowDown") (move-focus-down-one-line root-ratom evt topic-ratom span-id)
