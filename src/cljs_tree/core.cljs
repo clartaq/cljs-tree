@@ -150,14 +150,49 @@
    :which              (.-which evt)})
 
 ;;------------------------------------------------------------------------------
-;; Tree id manipulation functions.
+;; Just a few miscellaneous utility functions.
+
+(defn convert-to-number-or-not
+  "If every character in the string is a digit, convert the string to a
+  number and return it. Otherwise, return the string unchanged."
+  [s]
+  (if (every? #(.includes "0123456789" %) s)
+    (js/parseInt s)
+    s))
+
+;; From: https://stackoverflow.com/questions/5232350/clojure-semi-flattening-a-nested-sequence
+(defn flatten-to-vectors
+  "Flatten nested sequences of vectors to a flat sequence of those vectors."
+  [s]
+  (mapcat #(if (every? coll? %) (flatten-to-vectors %) (list %)) s))
+
+(defn positions
+  "Return a list of the index positions of elements in coll that satisfy pred."
+  [pred coll]
+  (keep-indexed #(when (pred %2) %1) coll))
+
+;;------------------------------------------------------------------------------
+;; Tree id manipulation functions. These are all basically string manipulation
+;; functions that don't need to do anything with the data in the tree.
 
 (defn tree-id->tree-id-parts
   "Split a DOM id string (as used in this program) into its parts and return
-  a vector of the parts."
+  a vector of the parts. Note that numeric indices in the parts vector are
+  actually strings, not numbers."
   [id]
   (when (and id (seq id))
     (s/split id (topic-separator))))
+
+(defn numberize-parts
+  "Take a vector of tree id parts and convert any of the parts containing all
+  digit characters to numbers. This can be useful with comparing parts vectors
+  produced from tree ids to nav vectors produced by one of the tree
+  traversal functions."
+  [parts]
+  (loop [p parts r []]
+    (if (empty? p)
+      r
+      (recur (rest p) (conj r (convert-to-number-or-not (first p)))))))
 
 (defn tree-id-parts->tree-id-string
   "Return a string formed by interposing the topic-separator between the
@@ -173,22 +208,14 @@
   [tree-id]
   (= (root-parts) (remove-last (tree-id->tree-id-parts tree-id))))
 
-(defn is-top-visible-tree-id?
-  "Return the same result as is-top-tree-id? since the top of the tree is
-  always visible."
-  [root-ratom tree-id]
-  (is-top-tree-id? tree-id))
-
-(defn is-bottom-tree-id?
-  "Return true if the node with the given id is the bottom-most node
-  in the tree."
-  [root-ratom tree-id])
-
-(defn is-bottom-visible-tree-id?
-  "Return true if the node with the given id is the bottom visible node in
-  the tree; false otherwise."
-  [root-ratom tree-id]
-  false)
+(defn id-of-first-child
+  "Return the expected id of the first child of the node with this id. There
+  is no guarantee that an actual tree node with the id exists."
+  [tree-id]
+  ;(println "id-of-first-child: tree-id " tree-id)
+  (let [id-parts (remove-last (tree-id->tree-id-parts tree-id))
+        new-parts (conj (conj id-parts 0) "topic")]
+    (tree-id-parts->tree-id-string new-parts)))
 
 (defn nav-index-vector->tree-id-string
   "Creates a DOM id string from a vector of indices used to navigate to
@@ -265,9 +292,6 @@
         interposed (interpose :children index-vector)]
     {:path-to-parent (vec interposed) :child-index idx}))
 
-;;------------------------------------------------------------------------------
-;; Functions to query and manipulate the tree and subtrees.
-
 (defn editing?
   "Return true if the element with the given id is in the editing state."
   [id]
@@ -279,6 +303,58 @@
   [first-path second-path]
   (pos? (compare (tree-id->sortable-nav-string first-path)
                  (tree-id->sortable-nav-string second-path))))
+
+;;------------------------------------------------------------------------------
+;; Functions to query and manipulate the tree and subtrees.
+
+(defn tree->nav-vector-sequence
+  "Return a sequence of (possibly nested) navigation vectors for all the nodes
+  in the tree that satisfy the predicate. The sequence is generated from an
+  'in-order' traversal."
+  [tree so-far pred]
+  (letfn [(helper [my-tree my-id-so-far]
+            (map-indexed (fn [idx ele]
+                           (let [new-id (conj my-id-so-far idx)]
+                             (if-not (pred ele)
+                               new-id
+                               (cons new-id (helper (:children ele) new-id)))))
+                         my-tree))]
+    (helper tree so-far)))
+
+(defn visible-nodes
+  "Return a sequence of vectors of the numerical indices used to travel from
+  the root to each visible node."
+  [tree so-far]
+  (flatten-to-vectors
+    (tree->nav-vector-sequence tree so-far #(and (:children %) (:expanded %)))))
+
+(defn all-nodes
+  "Return a sequence of vectors of the numerical indices used to travel from
+  the root to each node in the tree. Includes nodes that may not be visible
+  at the moment."
+  [tree so-far]
+  (flatten-to-vectors
+    (tree->nav-vector-sequence tree so-far #(:children %))))
+
+(defn is-top-visible-tree-id?
+  "Return the same result as is-top-tree-id? since the top of the tree is
+  always visible."
+  [root-ratom tree-id]
+  (is-top-tree-id? tree-id))
+
+(defn is-bottom-tree-id?
+  "Return true if the node with the given id is the bottom-most node
+  in the tree, even if it is not currently visible."
+  [root-ratom tree-id]
+  (= tree-id (tree-id-parts->tree-id-string
+               (conj (last (all-nodes @root-ratom ["root"])) "topic"))))
+
+(defn is-bottom-visible-tree-id?
+  "Return true if the node with the given id is the bottom visible node in
+  the tree; false otherwise."
+  [root-ratom tree-id]
+  (= tree-id (tree-id-parts->tree-id-string
+               (conj (last (visible-nodes @root-ratom ["root"])) "topic"))))
 
 (defn get-topic
   "Return the topic map at the requested id. Return nil if there is
@@ -381,6 +457,34 @@
                      (conj (conj short-parts (dec last-part)) "topic"))))]
     new-id))
 
+(defn brute-force-next-visible-node
+  "Return the next visible node in the tree after the current id. This method
+  should only be called if no simplifying conditions exist to identify the
+  needed node more easily."
+  [root-ratom tree-id]
+  ;(println "brute-force-next-visible-node: tree-id: " tree-id)
+  ; TODO Could this be easier if we didn't start from "root" and just
+  ; did the work with all numeric vectors?
+  (let [visible-nodes (vec (visible-nodes @root-ratom ["root"]))
+        parts (numberize-parts (remove-last (tree-id->tree-id-parts tree-id)))
+        match-idx (first (positions (fn [x]
+                                      (= x parts)) visible-nodes))]
+    (tree-id-parts->tree-id-string
+      (conj (nth visible-nodes (inc match-idx)) "topic"))))
+
+(defn next-visible-node
+  "Return the next visible node in the tree after the current node."
+  [root-ratom current-node-id]
+  ;(println "next-visible-node: current-node-id: " current-node-id)
+  (let [current-topic (get-topic root-ratom current-node-id)
+        ; Pre-calculate one of the easy possibilities.
+        next-sibling-id (increment-leaf-index current-node-id)]
+    (cond
+      (and (:expanded current-topic)
+           (:children current-topic)) (id-of-first-child current-node-id)
+      (get-topic root-ratom next-sibling-id) next-sibling-id
+      :default (brute-force-next-visible-node root-ratom current-node-id))))
+
 (defn remove-top-level-sibling!
   "Remove one of the top level topics from the tree. Return a copy of the
   branch (entire tree) with the sibling removed or nil if there was a problem
@@ -481,6 +585,21 @@
       (when (get-element-by-id previous-visible-editor-id)
         (focus-and-scroll-editor-for-id previous-visible-topic-id previous-topic-length)))))
 
+(defn delete-one-character-after
+  "Delete one character forward. Handles the special case when there are no
+  more characters in the headline. In that case the headline will be deleted
+  and the focus will move to the previous visible node. Will not delete the
+  last remaining top-level node."
+  [root-ratom evt topic-ratom span-id]
+  ;(println "delete-one-character-after: span-id: " span-id)
+  (when (zero? (count @topic-ratom))
+    (.preventDefault evt)
+    (let [previous-visible-topic-id (previous-visible-node root-ratom span-id)
+          previous-visible-editor-id (change-tree-id-type previous-visible-topic-id "editor")]
+      (prune-topic! root-ratom span-id)
+      (when (get-element-by-id previous-visible-editor-id)
+        (focus-and-scroll-editor-for-id previous-visible-topic-id 0)))))
+
 (defn indent
   "Indent the current headline one level."
   [root-ratom evt topic-ratom span-id]
@@ -515,16 +634,21 @@
   (.preventDefault evt)
   (when-not (is-top-visible-tree-id? root-ratom span-id)
     (let [editor-id (change-tree-id-type span-id "editor")
-          saved-cursor-position (.-selectionStart (get-element-by-id editor-id))]
-      (let [previous-visible-topic (previous-visible-node root-ratom span-id)]
-        (focus-and-scroll-editor-for-id previous-visible-topic saved-cursor-position)))))
+          saved-cursor-position (.-selectionStart (get-element-by-id editor-id))
+          previous-visible-topic (previous-visible-node root-ratom span-id)]
+      (focus-and-scroll-editor-for-id previous-visible-topic saved-cursor-position))))
 
 (defn move-focus-down-one-line
+  "Respond to a down arrow key-down event by moving the editor and focuse to
+  the next lower down visible headline."
   [root-ratom evt topic-ratom span-id]
-  (println "move-focus-down-one-line")
+  ;(println "move-focus-down-one-line")
   (.preventDefault evt)
   (when-not (is-bottom-visible-tree-id? root-ratom span-id)
-    (println "    Gonna move on down.")))
+    (let [editor-id (change-tree-id-type span-id "editor")
+          saved-cursor-position (.-selectionStart (get-element-by-id editor-id))
+          next-visible-topic (next-visible-node root-ratom span-id)]
+      (focus-and-scroll-editor-for-id next-visible-topic saved-cursor-position))))
 
 (defn insert-new-headline-below
   "Handle a key-down event for the Enter/Return key. Insert a new headline
@@ -552,16 +676,20 @@
         the-key (:key evt-map)
         shifted (:shift-key evt-map)]
     (cond
-      (= the-key "Enter") (insert-new-headline-below root-ratom evt topic-ratom span-id)
-      (= the-key "Delete") (println "Delete")
+      (= the-key "Enter") (insert-new-headline-below
+                            root-ratom evt topic-ratom span-id)
+      (= the-key "Delete") (delete-one-character-after
+                             root-ratom evt topic-ratom span-id)
       (= the-key "Backspace") (delete-one-character-before
                                 root-ratom evt topic-ratom span-id)
       (= the-key "Tab") (indent root-ratom evt topic-ratom span-id)
       (and (= the-key "Tab")
-           shifted )(un-indent root-ratom evt
-                                   topic-ratom span-id)
-      (= the-key "ArrowUp") (move-focus-up-one-line root-ratom evt topic-ratom span-id)
-      (= the-key "ArrowDown") (move-focus-down-one-line root-ratom evt topic-ratom span-id)
+           shifted) (un-indent root-ratom evt
+                               topic-ratom span-id)
+      (= the-key "ArrowUp") (move-focus-up-one-line
+                              root-ratom evt topic-ratom span-id)
+      (= the-key "ArrowDown") (move-focus-down-one-line
+                                root-ratom evt topic-ratom span-id)
       :default nil)))
 
 ;;;-----------------------------------------------------------------------------
@@ -745,25 +873,6 @@
      [indent-div indent-id]
      [chevron-div root-ratom subtree-ratom chevron-id]
      [topic-info-div root-ratom subtree-ratom ids-for-row]]))
-
-;; From: https://stackoverflow.com/questions/5232350/clojure-semi-flattening-a-nested-sequence
-(defn flatten-to-vectors
-  "Flatten nested sequences of vectors to a flat sequence of those vectors."
-  [s]
-  (mapcat #(if (every? coll? %) (flatten-to-vectors %) (list %)) s))
-
-(defn visible-nodes
-  "Return a sequence of vectors of the numerical indices used to travel from the
-  root to each visible node."
-  [tree so-far]
-  (flatten-to-vectors
-    (map-indexed
-      (fn [idx ele]
-        (let [new-id (conj so-far idx)]
-          (if-not (and (:children ele) (:expanded ele))
-            new-id
-            (cons new-id (visible-nodes (:children ele) new-id)))))
-      tree)))
 
 (defn tree->hiccup
   "Return a div containing all of the visible content of the tree based on
