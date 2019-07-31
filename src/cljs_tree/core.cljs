@@ -334,7 +334,7 @@
   at the moment."
   [tree so-far]
   (flatten-to-vectors
-    (tree->nav-vector-sequence tree so-far #(:children %))))
+    (tree->nav-vector-sequence tree so-far :children)))
 
 (defn is-top-visible-tree-id?
   "Return the same result as is-top-tree-id? since the top of the tree is
