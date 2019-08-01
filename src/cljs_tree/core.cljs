@@ -25,11 +25,6 @@
   []
   \u02D1)
 
-;(def id-of-first-top-level-topic (str "root" (topic-separator) 0 (topic-separator) "topic"))
-(defn id-of-second-top-level-topic
-  []
-  (str "root" (topic-separator) 1 (topic-separator) "topic"))
-
 (defn root-parts
   "Returns a vector of the components used to build various ids of the root."
   []
@@ -57,10 +52,6 @@
 (defn get-element-by-id
   [id]
   (.getElementById js/document id))
-
-(defn disable-element-by-id!
-  [id]
-  (set! (.-disabled (get-element-by-id id)) "true"))
 
 (defn get-value-by-id
   [id]
@@ -221,8 +212,8 @@
   "Creates a DOM id string from a vector of indices used to navigate to
   the topic. If no id type is specified, the default value of 'topic'
   is used."
-  [nav-index-vector & type-to-use]
-  (let [id-type (or (first type-to-use) "topic")
+  [nav-index-vector & [type-to-use]]
+  (let [id-type (or type-to-use "topic")
         result (str "root" (topic-separator)
                     (tree-id-parts->tree-id-string nav-index-vector)
                     (topic-separator) id-type)]
@@ -282,7 +273,7 @@
   "Parse the id into a navigation path vector to the parent of the node and an
   index within the vector of children. Return a map containing the two pieces
   of data. Basically, parse the id into a vector of information to navigate
-  to the parent (a la get-n) and the index of the child encoded in the id."
+  to the parent (a la get-in) and the index of the child encoded in the id."
   [tree-id]
   (let [string-vec (tree-id->tree-id-parts tree-id)
         idx (int (nth string-vec (- (count string-vec) 2)))
@@ -312,6 +303,7 @@
   in the tree that satisfy the predicate. The sequence is generated from an
   'in-order' traversal."
   [tree so-far pred]
+  ;(println "tree->nav-vector-sequence")
   (letfn [(helper [my-tree my-id-so-far]
             (map-indexed (fn [idx ele]
                            (let [new-id (conj my-id-so-far idx)]
@@ -321,12 +313,16 @@
                          my-tree))]
     (helper tree so-far)))
 
+(defn has-visible-children?
+  [topic-map]
+  (and (:children topic-map) (:expanded topic-map)))
+
 (defn visible-nodes
   "Return a sequence of vectors of the numerical indices used to travel from
   the root to each visible node."
   [tree so-far]
   (flatten-to-vectors
-    (tree->nav-vector-sequence tree so-far #(and (:children %) (:expanded %)))))
+    (tree->nav-vector-sequence tree so-far has-visible-children?)))
 
 (defn all-nodes
   "Return a sequence of vectors of the numerical indices used to travel from
@@ -341,13 +337,6 @@
   always visible."
   [root-ratom tree-id]
   (is-top-tree-id? tree-id))
-
-(defn is-bottom-tree-id?
-  "Return true if the node with the given id is the bottom-most node
-  in the tree, even if it is not currently visible."
-  [root-ratom tree-id]
-  (= tree-id (tree-id-parts->tree-id-string
-               (conj (last (all-nodes @root-ratom ["root"])) "topic"))))
 
 (defn is-bottom-visible-tree-id?
   "Return true if the node with the given id is the bottom visible node in
@@ -433,7 +422,7 @@
   ;(println "id-of-last-visible-child: tree-id: " tree-id)
   (loop [id-so-far tree-id
          topic-map (get-topic root-ratom id-so-far)]
-    (if-not (and (:expanded topic-map) (:children topic-map))
+    (if-not (has-visible-children? topic-map)
       id-so-far
       (let [next-child-vector (:children topic-map)
             next-index (dec (count next-child-vector))
@@ -463,14 +452,14 @@
   needed node more easily."
   [root-ratom tree-id]
   ;(println "brute-force-next-visible-node: tree-id: " tree-id)
-  ; TODO Could this be easier if we didn't start from "root" and just
-  ; did the work with all numeric vectors?
-  (let [visible-nodes (vec (visible-nodes @root-ratom ["root"]))
-        parts (numberize-parts (remove-last (tree-id->tree-id-parts tree-id)))
-        match-idx (first (positions (fn [x]
-                                      (= x parts)) visible-nodes))]
-    (tree-id-parts->tree-id-string
-      (conj (nth visible-nodes (inc match-idx)) "topic"))))
+  (let [vis-nav-vector-seq (flatten-to-vectors
+                             (tree->nav-vector-sequence
+                               @root-ratom []
+                               has-visible-children?))
+        nav-parts (numberize-parts (tree-id->nav-index-vector tree-id))
+        matched-nav (first (positions (fn [x] (= x nav-parts)) vis-nav-vector-seq))
+        complete-parts (conj (into ["root"] (nth vis-nav-vector-seq (inc matched-nav))) "topic")]
+    (tree-id-parts->tree-id-string complete-parts)))
 
 (defn next-visible-node
   "Return the next visible node in the tree after the current node."
@@ -480,8 +469,7 @@
         ; Pre-calculate one of the easy possibilities.
         next-sibling-id (increment-leaf-index current-node-id)]
     (cond
-      (and (:expanded current-topic)
-           (:children current-topic)) (id-of-first-child current-node-id)
+      (has-visible-children? current-topic) (id-of-first-child current-node-id)
       (get-topic root-ratom next-sibling-id) next-sibling-id
       :default (brute-force-next-visible-node root-ratom current-node-id))))
 
@@ -790,9 +778,8 @@
                                  :id    chevron-id
                                  :style {:opacity "0.0"}}
         es (cond
-             (and (:children @subtree-ratom)
-                  (:expanded @subtree-ratom)) [:div clickable-chevron-props
-                                               (str \u25BC \space)]
+             (has-visible-children? @subtree-ratom) [:div clickable-chevron-props
+                                                     (str \u25BC \space)]
              (:children @subtree-ratom) [:div clickable-chevron-props
                                          (str \u25BA \space)]
              ; No children, so no chevron is displayed.
