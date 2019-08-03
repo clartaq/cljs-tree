@@ -227,12 +227,26 @@
       (remove-last)
       (remove-first)))
 
+(defn is-top-level?
+  [topic-id]
+  ;(println "is-top-level?: topic-id: " topic-id)
+  (= 1 (tree-id->nav-index-vector topic-id)))
+
 (defn tree-id->sortable-nav-string
   "Convert the element id to a string containing the vector indices
   separated by a hyphen and return it. Result can be used to lexicographically
   determine if one element is 'higher' or 'lower' than another in the tree."
   [tree-id]
   (s/join "-" (tree-id->nav-index-vector tree-id)))
+
+(defn set-leaf-index
+  "Return a new version of the tree-id where the leaf index has been set to
+  a new value."
+  [tree-id new-index]
+  (let [parts (tree-id->tree-id-parts tree-id)
+        index-in-vector (- (count parts) 2)
+        new-parts (replace-at parts index-in-vector new-index)]
+    (tree-id-parts->tree-id-string new-parts)))
 
 (defn increment-leaf-index
   "Given the tree id of a leaf node, return an id with the node index
@@ -360,6 +374,16 @@
   [root-ratom topic-id]
   (count (has-children root-ratom topic-id)))
 
+(defn where-to-append-next-child
+  "Return the location (tree id) where the next sibling should be added to
+  a parent. That position is one below the last child or zero if the parent
+  has no children."
+  [root-ratom parent-id]
+  ;(println "where-to-append-next-child: parent-id: " parent-id)
+  (let [number-of-children (count-children root-ratom parent-id)
+        first-child (id-of-first-child parent-id)]
+    (set-leaf-index first-child number-of-children)))
+
 (defn expanded?
   "Return true if the subtree is in the expanded state (implying that it
   has children). Returns nil if the subtree is not expanded."
@@ -414,6 +438,15 @@
     (when (pos? last-path-index)
       (tree-id-parts->tree-id-string
         (into (remove-last-two parts) [(dec last-path-index) "topic"])))))
+
+(defn siblings-below
+  "Return a (possibly empty) seq of siblings that appear lower in the tree
+  display than the one denoted by tree-id."
+  [root-ratom tree-id]
+  (loop [id (increment-leaf-index tree-id) res []]
+    (if (nil? (get-topic root-ratom id))
+      res
+      (recur (increment-leaf-index id) (conj res id)))))
 
 (defn id-of-last-visible-child
   "Return the id of the last visible child of the branch starting at tree-id.
@@ -593,25 +626,45 @@
   [root-ratom evt topic-ratom span-id]
   ;(println "indent")
   (.preventDefault evt)
-  (when-let [previous-sibling (id-of-previous-sibling span-id)]
-    (expand-node root-ratom previous-sibling)
-    (let [sibling-child-count (count-children root-ratom previous-sibling)
-          editor-id (change-tree-id-type span-id "editor")
-          caret-position (get-caret-position editor-id)
-          sibling-parts (tree-id->tree-id-parts previous-sibling)
-          with-added-leaf (conj (remove-last sibling-parts) sibling-child-count)
-          demoted-prefix (tree-id-parts->tree-id-string with-added-leaf)
-          demoted-id (str demoted-prefix (topic-separator) "topic")
-          demoted-editor-id (str demoted-prefix (topic-separator) "editor")]
-      (move-branch! root-ratom span-id demoted-id)
-      (r/after-render
-        (fn []
-          (focus-and-scroll-editor-for-id demoted-editor-id caret-position))))))
+  (when-not (is-top-tree-id? span-id)
+    (when-let [previous-sibling (id-of-previous-sibling span-id)]
+      (expand-node root-ratom previous-sibling)
+      (let [sibling-child-count (count-children root-ratom previous-sibling)
+            editor-id (change-tree-id-type span-id "editor")
+            caret-position (get-caret-position editor-id)
+            sibling-parts (tree-id->tree-id-parts previous-sibling)
+            with-added-leaf (conj (remove-last sibling-parts) sibling-child-count)
+            demoted-prefix (tree-id-parts->tree-id-string with-added-leaf)
+            demoted-id (str demoted-prefix (topic-separator) "topic")
+            demoted-editor-id (str demoted-prefix (topic-separator) "editor")]
+        (move-branch! root-ratom span-id demoted-id)
+        (r/after-render
+          (fn []
+            (focus-and-scroll-editor-for-id demoted-editor-id caret-position)))))))
 
 (defn un-indent
   "Un-indent the current headline one level."
   [root-ratom evt topic-ratom span-id]
-  (println "un-indent"))
+  ;(println "un-indent: span-id: " span-id)
+  (.preventDefault evt)
+  (when-not (is-top-level? span-id)
+    (let [editor-id (change-tree-id-type span-id "editor")
+          caret-position (get-caret-position editor-id)
+          parts (tree-id->nav-index-vector span-id)
+          less-parts (remove-last parts)
+          promoted-id (increment-leaf-index (nav-index-vector->tree-id-string less-parts))
+          siblings-to-move (reverse (siblings-below root-ratom span-id))]
+      (when-not (empty? siblings-to-move)
+        (expand-node root-ratom span-id)
+        (let [where-to-append (where-to-append-next-child root-ratom span-id)]
+          (loop [child (first siblings-to-move) siblings (rest siblings-to-move)]
+            (when child
+              (move-branch! root-ratom child where-to-append)
+              (recur (first siblings) (rest siblings))))))
+      (move-branch! root-ratom span-id promoted-id)
+      (r/after-render
+        (fn []
+          (focus-and-scroll-editor-for-id promoted-id caret-position))))))
 
 (defn move-focus-up-one-line
   "Respond to an up arrow key-down event my moving the editor and focus to
@@ -670,10 +723,10 @@
                              root-ratom evt topic-ratom span-id)
       (= the-key "Backspace") (delete-one-character-before
                                 root-ratom evt topic-ratom span-id)
-      (= the-key "Tab") (indent root-ratom evt topic-ratom span-id)
       (and (= the-key "Tab")
            shifted) (un-indent root-ratom evt
                                topic-ratom span-id)
+      (= the-key "Tab") (indent root-ratom evt topic-ratom span-id)
       (= the-key "ArrowUp") (move-focus-up-one-line
                               root-ratom evt topic-ratom span-id)
       (= the-key "ArrowDown") (move-focus-down-one-line
