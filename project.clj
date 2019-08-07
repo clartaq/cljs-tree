@@ -1,6 +1,6 @@
 (defproject cljs-tree "0.1.0-SNAPSHOT"
-  :description "FIXME: write this!"
-  :url "http://example.com/FIXME"
+  :description "An experiment with an hierarchical data structure."
+  :url "https://bitbucket.org/David_Clark/cljs-tree"
   :license {:name "Eclipse Public License"
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
 
@@ -17,8 +17,8 @@
             "fig:min"   ["run" "-m" "figwheel.main" "-O" "advanced" "-bo" "dev"]
             "fig:test"  ["run" "-m" "figwheel.main" "-co" "test.cljs.edn" "-m" cljs-tree-test.test-runner]}
 
-  :profiles {:dev {:dependencies [[com.bhauman/figwheel-main "0.2.3"]
-                                  [com.bhauman/rebel-readline-cljs "0.1.4"]]
+  :profiles {:dev {:dependencies   [[com.bhauman/figwheel-main "0.2.3"]
+                                    [com.bhauman/rebel-readline-cljs "0.1.4"]]
                    :resource-paths ["target"]
                    ;; need to add the compiled assets to the :clean-targets
-                   :clean-targets ^{:protect false} ["target"]}})
+                   :clean-targets  ^{:protect false} ["target"]}})
