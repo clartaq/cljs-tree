@@ -203,7 +203,6 @@
   "Return the expected id of the first child of the node with this id. There
   is no guarantee that an actual tree node with the id exists."
   [tree-id]
-  ;(println "id-of-first-child: tree-id " tree-id)
   (let [id-parts (remove-last (tree-id->tree-id-parts tree-id))
         new-parts (conj (conj id-parts 0) "topic")]
     (tree-id-parts->tree-id-string new-parts)))
@@ -213,11 +212,10 @@
   the topic. If no id type is specified, the default value of 'topic'
   is used."
   [nav-index-vector & [type-to-use]]
-  (let [id-type (or type-to-use "topic")
-        result (str "root" (topic-separator)
-                    (tree-id-parts->tree-id-string nav-index-vector)
-                    (topic-separator) id-type)]
-    result))
+  (let [id-type (or type-to-use "topic")]
+    (str "root" (topic-separator)
+         (tree-id-parts->tree-id-string nav-index-vector)
+         (topic-separator) id-type)))
 
 (defn tree-id->nav-index-vector
   "Return a vector of the numeric indices in the child vectors from the
@@ -228,8 +226,8 @@
       (remove-first)))
 
 (defn is-top-level?
+  "Return true if topic-id represents a member of the top-level of topics."
   [topic-id]
-  ;(println "is-top-level?: topic-id: " topic-id)
   (= 1 (tree-id->nav-index-vector topic-id)))
 
 (defn tree-id->sortable-nav-string
@@ -349,7 +347,7 @@
 (defn is-top-visible-tree-id?
   "Return the same result as is-top-tree-id? since the top of the tree is
   always visible."
-  [root-ratom tree-id]
+  [_ tree-id]
   (is-top-tree-id? tree-id))
 
 (defn is-bottom-visible-tree-id?
@@ -376,8 +374,8 @@
 
 (defn where-to-append-next-child
   "Return the location (tree id) where the next sibling should be added to
-  a parent. That position is one below the last child or zero if the parent
-  has no children."
+  a parent. That position is one below the last child or the first child if
+  the parent has no children."
   [root-ratom parent-id]
   ;(println "where-to-append-next-child: parent-id: " parent-id)
   (let [number-of-children (count-children root-ratom parent-id)
@@ -421,13 +419,13 @@
   (when tree-id
     (let [editor-id (change-tree-id-type tree-id "editor")]
       (when-not (editing? editor-id)
-        (let [label-id (change-tree-id-type tree-id "label")]
+        (let [label-id (change-tree-id-type tree-id "label")
+              editor-ele (get-element-by-id editor-id)]
           (swap-display-properties label-id editor-id)
-          (.focus (get-element-by-id editor-id))
+          (.focus editor-ele)
           (scroll-ele-into-view editor-id)
           (when caret-pos
-            (.setSelectionRange (get-element-by-id editor-id)
-                                caret-pos caret-pos)))))))
+            (.setSelectionRange editor-ele caret-pos caret-pos)))))))
 
 (defn id-of-previous-sibling
   "Return the id of the previous sibling of this tree id. Returns nil if this
