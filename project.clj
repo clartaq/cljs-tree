@@ -10,15 +10,15 @@
                  [org.clojure/clojurescript "1.10.520"]
                  [reagent "0.8.1"]]
 
-  :source-paths ["src" "dev"]
-
-  :clean-targets ^{:protect false} ["resources/public/cljs-out"]
+  :source-paths ["src"]
 
   :aliases {"fig"       ["trampoline" "run" "-m" "figwheel.main"]
             "fig:build" ["trampoline" "run" "-m" "figwheel.main" "-b" "dev" "-r"]
             "fig:min"   ["run" "-m" "figwheel.main" "-O" "advanced" "-bo" "dev"]
-            "fig:test"  ["trampoline" "run" "-m" "figwheel.main" "-co" "test.cljs.edn" "-m" cljs-tree-test.test-runner]}
+            "fig:test"  ["run" "-m" "figwheel.main" "-co" "test.cljs.edn" "-m" cljs-tree-test.test-runner]}
 
   :profiles {:dev {:dependencies [[com.bhauman/figwheel-main "0.2.3"]
                                   [com.bhauman/rebel-readline-cljs "0.1.4"]]
-                   }})
+                   :resource-paths ["target"]
+                   ;; need to add the compiled assets to the :clean-targets
+                   :clean-targets ^{:protect false} ["target"]}})
