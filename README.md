@@ -4,8 +4,7 @@ An experiment with hierarchical data in ClojureScript.
 
 ## Overview
 
-`cljs-tree` is a small experiment in how to use a hierarchical data structure in
-ClojureScript. It implements a simple outliner/tree control. When run, the program will display a small sample outline in your default browser. (I've tested with Safari, Firefox, Opera and Brave, all on a Mac.) The outline is fully editable. The commands accepted by the outliner are described below. This demo does not support saving changes or exporting the modified outline. (The additional work to do so would move it beyond the "experimental" stage.)
+`cljs-tree` is a small experiment in how to use a hierarchical data structure in ClojureScript. It implements a simple outliner/tree control. When run, the program will display a small sample outline in your default browser. (I've tested with Safari, Firefox, Opera and Brave, all on a Mac.) The outline is fully editable. The commands accepted by the outliner are described below. This demo does not support saving changes or exporting the modified outline. (The additional work to do so would move it beyond the "experimental" stage.)
 
 ## Setup
 
@@ -110,7 +109,7 @@ Once satisfied that the rock data manipulation works, start adding to, modifying
 
 ## Documentation
 
-Some technical documentation, including a description of the tree data structure, is included in the `docs` directory.
+Some technical documentation, including a description of the tree data structure, is included in the `doc` directory.
 
 ## To Do
 
