@@ -357,20 +357,26 @@
   (= tree-id (tree-id-parts->tree-id-string
                (conj (last (visible-nodes @root-ratom ["root"])) "topic"))))
 
+(defn last-node-in-tree
+  "Return the tree-id of the last node in the tree."
+  [root-ratom]
+  (tree-id-parts->tree-id-string
+    (conj (last (all-nodes @root-ratom ["root"])) "topic")))
+
 (defn get-topic
   "Return the topic map at the requested id. Return nil if there is
   nothing at that location."
   [root-ratom topic-id]
   (get-in @root-ratom (tree-id->tree-path-nav-vector topic-id)))
 
-(defn has-children
+(defn has-children?
   "Return the entire vector of children if present, nil otherwise."
   [root-ratom topic-id]
   (:children (get-topic root-ratom topic-id)))
 
 (defn count-children
   [root-ratom topic-id]
-  (count (has-children root-ratom topic-id)))
+  (count (has-children? root-ratom topic-id)))
 
 (defn where-to-append-next-child
   "Return the location (tree id) where the next sibling should be added to
@@ -417,15 +423,15 @@
   position is provided, place the editor caret at that position."
   [tree-id & [caret-pos]]
   (when tree-id
-    (let [editor-id (change-tree-id-type tree-id "editor")]
+    (let [editor-id (change-tree-id-type tree-id "editor")
+          editor-ele (get-element-by-id editor-id)]
       (when-not (editing? editor-id)
-        (let [label-id (change-tree-id-type tree-id "label")
-              editor-ele (get-element-by-id editor-id)]
-          (swap-display-properties label-id editor-id)
-          (.focus editor-ele)
-          (scroll-ele-into-view editor-id)
-          (when caret-pos
-            (.setSelectionRange editor-ele caret-pos caret-pos)))))))
+        (let [label-id (change-tree-id-type tree-id "label")]
+          (swap-display-properties label-id editor-id)))
+      (.focus editor-ele)
+      (scroll-ele-into-view editor-id)
+      (when caret-pos
+        (.setSelectionRange editor-ele caret-pos caret-pos)))))
 
 (defn id-of-previous-sibling
   "Return the id of the previous sibling of this tree id. Returns nil if this
@@ -450,7 +456,6 @@
   "Return the id of the last visible child of the branch starting at tree-id.
   The last visible child may be many levels deeper in the tree."
   [root-ratom tree-id]
-  ;(println "id-of-last-visible-child: tree-id: " tree-id)
   (loop [id-so-far tree-id
          topic-map (get-topic root-ratom id-so-far)]
     (if-not (has-visible-children? topic-map)
@@ -478,22 +483,24 @@
     new-id))
 
 (defn brute-force-next-visible-node
-  "Return the next visible node in the tree after the current id. This method
-  should only be called if no simplifying conditions exist to identify the
-  needed node more easily."
+  "Return the next visible node in the tree after the current id.  Return
+  nil if the tree-id already corresponds to the last visible node in the
+  tree. This method should only be called if no simplifying conditions exist
+  to identify the needed node more easily."
   [root-ratom tree-id]
-  ;(println "brute-force-next-visible-node: tree-id: " tree-id)
-  (let [vis-nav-vector-seq (flatten-to-vectors
-                             (tree->nav-vector-sequence
-                               @root-ratom []
-                               has-visible-children?))
-        nav-parts (numberize-parts (tree-id->nav-index-vector tree-id))
-        matched-nav (first (positions (fn [x] (= x nav-parts)) vis-nav-vector-seq))
-        complete-parts (conj (into ["root"] (nth vis-nav-vector-seq (inc matched-nav))) "topic")]
-    (tree-id-parts->tree-id-string complete-parts)))
+  (when-not (is-bottom-visible-tree-id? root-ratom tree-id)
+    (let [vis-nav-vector-seq (flatten-to-vectors
+                               (tree->nav-vector-sequence
+                                 @root-ratom []
+                                 has-visible-children?))
+          nav-parts (numberize-parts (tree-id->nav-index-vector tree-id))
+          inc-matched-nav (inc (first (positions (fn [x] (= x nav-parts)) vis-nav-vector-seq)))
+          complete-parts (conj (into ["root"] (nth vis-nav-vector-seq inc-matched-nav)) "topic")]
+      (tree-id-parts->tree-id-string complete-parts))))
 
 (defn next-visible-node
-  "Return the next visible node in the tree after the current node."
+  "Return the next visible node in the tree after the current node. Returns
+  nil if the node is already the last visible node."
   [root-ratom current-node-id]
   ;(println "next-visible-node: current-node-id: " current-node-id)
   (let [current-topic (get-topic root-ratom current-node-id)
@@ -585,39 +592,91 @@
           (prune-topic! root-ratom id-of-existing-subtree)))
     (scroll-ele-into-view id-to-focus)))
 
+(defn un-indent-branch!
+  "Un-indent (promote) the given branch and return its new id."
+  [root-ratom branch-id]
+  (let [parts (tree-id->nav-index-vector branch-id)
+        less-parts (remove-last parts)
+        promoted-id (increment-leaf-index (nav-index-vector->tree-id-string less-parts))
+        siblings-to-move (reverse (siblings-below root-ratom branch-id))]
+    (when-not (empty? siblings-to-move)
+      (expand-node root-ratom branch-id)
+      (let [where-to-append (where-to-append-next-child root-ratom branch-id)]
+        (loop [child (first siblings-to-move) siblings (rest siblings-to-move)]
+          (when child
+            (move-branch! root-ratom child where-to-append)
+            (recur (first siblings) (rest siblings))))))
+    (move-branch! root-ratom branch-id promoted-id)
+    promoted-id))
+
+(defn un-indent-all-children!
+  "Un-indent (promote) all the children of the given node."
+  [root-ratom span-id & [children]]
+  ;(println "un-indent-all-children!: span-id: " span-id ", children: " children)
+  (let [child-array (or children (has-children? root-ratom span-id))
+        first-id (id-of-first-child span-id)]
+    ;; Runs from the bottom child to the top. Doing it from top to bottom
+    ;; would "capture" lower children under the higher children.
+    (doseq [idx (range (dec (count child-array)) -1 -1)]
+      (let [nxt-id (set-leaf-index first-id idx)]
+        (un-indent-branch! root-ratom nxt-id)))
+    span-id))
+
 ;;;-----------------------------------------------------------------------------
 ;;; Functions to handle keystroke events. Editing commands.
 
-(defn delete-one-character-before
+(defn delete-one-character-backward
   "Handle the special case when the current headline has no more characters.
   Delete it and any children, then move the editor focus to the headline
   above it. Will not delete the last remaining top-level headline."
-  [root-ratom evt topic-ratom span-id]
-  ;(println "delete-one-character-before: span-id: " span-id)
+  [root-ratom evt topic-ratom span-id & [cursor-pos]]
+  ;(println "delete-one-character-backward: span-id: " span-id)
   (when (zero? (count @topic-ratom))
     (.preventDefault evt)
     (let [previous-visible-topic-id (previous-visible-node root-ratom span-id)
           previous-topic-value (get-topic root-ratom previous-visible-topic-id)
-          previous-topic-length (count (:topic previous-topic-value))
+          cursor-position (or cursor-pos (count (:topic previous-topic-value)))
           previous-visible-editor-id (change-tree-id-type previous-visible-topic-id "editor")]
       (prune-topic! root-ratom span-id)
       (when (get-element-by-id previous-visible-editor-id)
-        (focus-and-scroll-editor-for-id previous-visible-topic-id previous-topic-length)))))
+        (r/after-render
+          (fn []
+            (focus-and-scroll-editor-for-id previous-visible-topic-id cursor-position)))))))
 
-(defn delete-one-character-after
+;; BROKEN!
+;; Does not handle the case where a branch with collapsed children is the
+;; last visible headline and is being deleted.
+(defn delete-one-character-forward
   "Delete one character forward. Handles the special case when there are no
   more characters in the headline. In that case the headline will be deleted
   and the focus will move to the previous visible node. Will not delete the
   last remaining top-level node."
   [root-ratom evt topic-ratom span-id]
-  ;(println "delete-one-character-after: span-id: " span-id)
+  (println "delete-one-character-forward: span-id: " span-id)
   (when (zero? (count @topic-ratom))
     (.preventDefault evt)
-    (let [previous-visible-topic-id (previous-visible-node root-ratom span-id)
-          previous-visible-editor-id (change-tree-id-type previous-visible-topic-id "editor")]
-      (prune-topic! root-ratom span-id)
-      (when (get-element-by-id previous-visible-editor-id)
-        (focus-and-scroll-editor-for-id previous-visible-topic-id 0)))))
+    (if-let [children (has-children? root-ratom span-id)]
+      (do
+        (println "    Going down path of children")
+        (when (expanded? root-ratom span-id)
+          (println "    Going down path of un-indent-all-children!")
+          (un-indent-all-children! root-ratom span-id children))
+        (prune-topic! root-ratom span-id)
+        (println "    span-id: " span-id)
+        (r/after-render
+          (fn []
+            (println "    path of children after-render")
+            (focus-and-scroll-editor-for-id span-id 0))))
+      ;; else
+      (if-let [next-topic-id (if-not (empty? (siblings-below root-ratom span-id))
+                               span-id
+                               (next-visible-node root-ratom span-id))]
+        (let [next-topic-editor-id (change-tree-id-type next-topic-id "editor")]
+          (prune-topic! root-ratom span-id)
+          (r/after-render
+            (fn []
+              (focus-and-scroll-editor-for-id next-topic-editor-id 0))))
+        (delete-one-character-backward root-ratom evt topic-ratom span-id 0)))))
 
 (defn indent
   "Indent the current headline one level."
@@ -633,12 +692,11 @@
             sibling-parts (tree-id->tree-id-parts previous-sibling)
             with-added-leaf (conj (remove-last sibling-parts) sibling-child-count)
             demoted-prefix (tree-id-parts->tree-id-string with-added-leaf)
-            demoted-id (str demoted-prefix (topic-separator) "topic")
-            demoted-editor-id (str demoted-prefix (topic-separator) "editor")]
+            demoted-id (str demoted-prefix (topic-separator) "topic")]
         (move-branch! root-ratom span-id demoted-id)
         (r/after-render
           (fn []
-            (focus-and-scroll-editor-for-id demoted-editor-id caret-position)))))))
+            (focus-and-scroll-editor-for-id demoted-id caret-position)))))))
 
 (defn un-indent
   "Un-indent the current headline one level."
@@ -648,18 +706,7 @@
   (when-not (is-top-level? span-id)
     (let [editor-id (change-tree-id-type span-id "editor")
           caret-position (get-caret-position editor-id)
-          parts (tree-id->nav-index-vector span-id)
-          less-parts (remove-last parts)
-          promoted-id (increment-leaf-index (nav-index-vector->tree-id-string less-parts))
-          siblings-to-move (reverse (siblings-below root-ratom span-id))]
-      (when-not (empty? siblings-to-move)
-        (expand-node root-ratom span-id)
-        (let [where-to-append (where-to-append-next-child root-ratom span-id)]
-          (loop [child (first siblings-to-move) siblings (rest siblings-to-move)]
-            (when child
-              (move-branch! root-ratom child where-to-append)
-              (recur (first siblings) (rest siblings))))))
-      (move-branch! root-ratom span-id promoted-id)
+          promoted-id (un-indent-branch! root-ratom span-id)]
       (r/after-render
         (fn []
           (focus-and-scroll-editor-for-id promoted-id caret-position))))))
@@ -678,7 +725,7 @@
       (focus-and-scroll-editor-for-id previous-visible-topic saved-cursor-position))))
 
 (defn move-focus-down-one-line
-  "Respond to a down arrow key-down event by moving the editor and focuse to
+  "Respond to a down arrow key-down event by moving the editor and focus to
   the next lower down visible headline."
   [root-ratom evt topic-ratom span-id]
   ;(println "move-focus-down-one-line")
@@ -717,9 +764,9 @@
     (cond
       (= the-key "Enter") (insert-new-headline-below
                             root-ratom evt topic-ratom span-id)
-      (= the-key "Delete") (delete-one-character-after
+      (= the-key "Delete") (delete-one-character-forward
                              root-ratom evt topic-ratom span-id)
-      (= the-key "Backspace") (delete-one-character-before
+      (= the-key "Backspace") (delete-one-character-backward
                                 root-ratom evt topic-ratom span-id)
       (and (= the-key "Tab")
            shifted) (un-indent root-ratom evt
