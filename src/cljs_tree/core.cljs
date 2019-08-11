@@ -36,12 +36,10 @@
   []
   1.5)
 
-;(def empty-topic {:topic ""})
 (defn empty-test-topic
   "Return the map to be used for an empty test topic."
   []
-  ; This is just the value to use during development and testing.
-  {:topic "Empty Test Topic"})
+  {:topic ""})
 
 ;;;-----------------------------------------------------------------------------
 ;;; Utilities
@@ -82,7 +80,6 @@
   "Return non-nil if the element is visible. Note that, unlike many of the
   functions in this section, this function expects a DOM element, not an id."
   [ele]
-  ;(println "is-ele-visible?: ele: " ele)
   (let [r (.getBoundingClientRect ele)
         doc-ele (.-documentElement js/document)
         wdw-height (or (.-innerHeight js/window) (-.clientHeight doc-ele))
@@ -315,7 +312,6 @@
   in the tree that satisfy the predicate. The sequence is generated from an
   'in-order' traversal."
   [tree so-far pred]
-  ;(println "tree->nav-vector-sequence")
   (letfn [(helper [my-tree my-id-so-far]
             (map-indexed (fn [idx ele]
                            (let [new-id (conj my-id-so-far idx)]
@@ -325,7 +321,22 @@
                          my-tree))]
     (helper tree so-far)))
 
+(defn all-nodes
+  "Return a sequence of vectors of the numerical indices used to travel from
+  the root to each node in the tree. Includes nodes that may not be visible
+  at the moment."
+  [tree so-far]
+  (flatten-to-vectors
+    (tree->nav-vector-sequence tree so-far :children)))
+
+(defn last-node-in-tree
+  "Return the tree-id of the last node in the tree."
+  [root-ratom]
+  (tree-id-parts->tree-id-string
+    (conj (last (all-nodes @root-ratom ["root"])) "topic")))
+
 (defn has-visible-children?
+  "Return true if the topic is expanded and has children."
   [topic-map]
   (and (:children topic-map) (:expanded topic-map)))
 
@@ -336,13 +347,11 @@
   (flatten-to-vectors
     (tree->nav-vector-sequence tree so-far has-visible-children?)))
 
-(defn all-nodes
-  "Return a sequence of vectors of the numerical indices used to travel from
-  the root to each node in the tree. Includes nodes that may not be visible
-  at the moment."
-  [tree so-far]
-  (flatten-to-vectors
-    (tree->nav-vector-sequence tree so-far :children)))
+(defn last-visible-node-in-tree
+  "Return the tree-id of the last visible node in the tree."
+  [root-ratom]
+  (tree-id-parts->tree-id-string
+    (conj (last (visible-nodes @root-ratom ["root"])) "topic")))
 
 (defn is-top-visible-tree-id?
   "Return the same result as is-top-tree-id? since the top of the tree is
@@ -357,12 +366,6 @@
   (= tree-id (tree-id-parts->tree-id-string
                (conj (last (visible-nodes @root-ratom ["root"])) "topic"))))
 
-(defn last-node-in-tree
-  "Return the tree-id of the last node in the tree."
-  [root-ratom]
-  (tree-id-parts->tree-id-string
-    (conj (last (all-nodes @root-ratom ["root"])) "topic")))
-
 (defn get-topic
   "Return the topic map at the requested id. Return nil if there is
   nothing at that location."
@@ -375,6 +378,7 @@
   (:children (get-topic root-ratom topic-id)))
 
 (defn count-children
+  "Return the number of children of the topic."
   [root-ratom topic-id]
   (count (has-children? root-ratom topic-id)))
 
@@ -383,7 +387,6 @@
   a parent. That position is one below the last child or the first child if
   the parent has no children."
   [root-ratom parent-id]
-  ;(println "where-to-append-next-child: parent-id: " parent-id)
   (let [number-of-children (count-children root-ratom parent-id)
         first-child (id-of-first-child parent-id)]
     (set-leaf-index first-child number-of-children)))
@@ -394,21 +397,21 @@
   [root-ratom tree-id]
   (:expanded (get-topic root-ratom tree-id)))
 
-(defn expand-node
+(defn expand-node!
   "Assure that the node is expanded."
   [root-ratom tree-id]
   (let [nav-vector (tree-id->tree-path-nav-vector tree-id)
         my-cursor (r/cursor root-ratom nav-vector)]
     (swap! my-cursor assoc :expanded true)))
 
-(defn collapse-node
+(defn collapse-node!
   "Assure that the node is collapsed."
   [root-ratom tree-id]
   (let [nav-vector (tree-id->tree-path-nav-vector tree-id)
         my-cursor (r/cursor root-ratom nav-vector)]
     (swap! my-cursor assoc :expanded nil)))
 
-(defn toggle-node-expansion
+(defn toggle-node-expansion!
   "Toggle the 'expanded' setting for the node. When the branch has no
   :expanded key, does nothing."
   [root-ratom tree-id]
@@ -469,7 +472,6 @@
 (defn previous-visible-node
   "Return the tree id of the visible node one line up."
   [root-ratom current-node-id]
-  ;(println "previous-visible-node: current-node-id: " current-node-id)
   (let [id-parts (remove-last (tree-id->tree-id-parts current-node-id))
         last-part (js/parseInt (last id-parts))
         short-parts (remove-last id-parts)
@@ -502,7 +504,6 @@
   "Return the next visible node in the tree after the current node. Returns
   nil if the node is already the last visible node."
   [root-ratom current-node-id]
-  ;(println "next-visible-node: current-node-id: " current-node-id)
   (let [current-topic (get-topic root-ratom current-node-id)
         ; Pre-calculate one of the easy possibilities.
         next-sibling-id (increment-leaf-index current-node-id)]
@@ -572,8 +573,8 @@
 
 (defn graft-topic!
   "Add a new topic at the specified location in the tree. The topic is inserted
-  into the tree. No data it removed. Any existing information of the graft is
-  pushed down in the tree."
+  into the tree. No data it removed. Any existing information at the location
+  where the new data is grafted is pushed down in the tree."
   [root-ratom id-of-desired-node topic-to-graft]
   (let [path-and-index (tree-id->nav-vector-and-index id-of-desired-node)]
     (add-child! (r/cursor root-ratom (:path-to-parent path-and-index))
@@ -582,7 +583,6 @@
 (defn move-branch!
   "Move an existing branch to a new location."
   [root-ratom id-of-existing-subtree id-of-new-subtree]
-  ;(println "move-branch!")
   (let [topic-to-move (get-topic root-ratom id-of-existing-subtree)
         id-to-focus (change-tree-id-type id-of-new-subtree "label")]
     (if (lower? id-of-existing-subtree id-of-new-subtree)
@@ -600,7 +600,7 @@
         promoted-id (increment-leaf-index (nav-index-vector->tree-id-string less-parts))
         siblings-to-move (reverse (siblings-below root-ratom branch-id))]
     (when-not (empty? siblings-to-move)
-      (expand-node root-ratom branch-id)
+      (expand-node! root-ratom branch-id)
       (let [where-to-append (where-to-append-next-child root-ratom branch-id)]
         (loop [child (first siblings-to-move) siblings (rest siblings-to-move)]
           (when child
@@ -612,7 +612,6 @@
 (defn un-indent-all-children!
   "Un-indent (promote) all the children of the given node."
   [root-ratom span-id & [children]]
-  ;(println "un-indent-all-children!: span-id: " span-id ", children: " children)
   (let [child-array (or children (has-children? root-ratom span-id))
         first-id (id-of-first-child span-id)]
     ;; Runs from the bottom child to the top. Doing it from top to bottom
@@ -630,7 +629,6 @@
   Delete it and any children, then move the editor focus to the headline
   above it. Will not delete the last remaining top-level headline."
   [root-ratom evt topic-ratom span-id & [cursor-pos]]
-  ;(println "delete-one-character-backward: span-id: " span-id)
   (when (zero? (count @topic-ratom))
     (.preventDefault evt)
     (let [previous-visible-topic-id (previous-visible-node root-ratom span-id)
@@ -643,30 +641,27 @@
           (fn []
             (focus-and-scroll-editor-for-id previous-visible-topic-id cursor-position)))))))
 
-;; BROKEN!
-;; Does not handle the case where a branch with collapsed children is the
-;; last visible headline and is being deleted.
 (defn delete-one-character-forward
-  "Delete one character forward. Handles the special case when there are no
-  more characters in the headline. In that case the headline will be deleted
-  and the focus will move to the previous visible node. Will not delete the
-  last remaining top-level node."
+  "Handle the special case when there are no more characters in the headline.
+  In that case the headline will be deleted and the focus will move to the
+  previous visible node. Will not delete the last remaining top-level node."
   [root-ratom evt topic-ratom span-id]
-  (println "delete-one-character-forward: span-id: " span-id)
   (when (zero? (count @topic-ratom))
     (.preventDefault evt)
     (if-let [children (has-children? root-ratom span-id)]
       (do
-        (println "    Going down path of children")
         (when (expanded? root-ratom span-id)
-          (println "    Going down path of un-indent-all-children!")
           (un-indent-all-children! root-ratom span-id children))
         (prune-topic! root-ratom span-id)
-        (println "    span-id: " span-id)
-        (r/after-render
-          (fn []
-            (println "    path of children after-render")
-            (focus-and-scroll-editor-for-id span-id 0))))
+        ;; Did we delete all of the children that might have advanced to the
+        ;; same id as span-id. That is, was it the last visible branch in the
+        ;; tree?
+        (let [node-to-focus (if (lower? span-id (last-node-in-tree root-ratom))
+                              (last-visible-node-in-tree root-ratom)
+                              span-id)]
+          (r/after-render
+            (fn []
+              (focus-and-scroll-editor-for-id node-to-focus 0)))))
       ;; else
       (if-let [next-topic-id (if-not (empty? (siblings-below root-ratom span-id))
                                span-id
@@ -681,11 +676,10 @@
 (defn indent
   "Indent the current headline one level."
   [root-ratom evt topic-ratom span-id]
-  ;(println "indent")
   (.preventDefault evt)
   (when-not (is-top-tree-id? span-id)
     (when-let [previous-sibling (id-of-previous-sibling span-id)]
-      (expand-node root-ratom previous-sibling)
+      (expand-node! root-ratom previous-sibling)
       (let [sibling-child-count (count-children root-ratom previous-sibling)
             editor-id (change-tree-id-type span-id "editor")
             caret-position (get-caret-position editor-id)
@@ -701,7 +695,6 @@
 (defn un-indent
   "Un-indent the current headline one level."
   [root-ratom evt topic-ratom span-id]
-  ;(println "un-indent: span-id: " span-id)
   (.preventDefault evt)
   (when-not (is-top-level? span-id)
     (let [editor-id (change-tree-id-type span-id "editor")
@@ -715,8 +708,6 @@
   "Respond to an up arrow key-down event my moving the editor and focus to
   the next higher up visible headline."
   [root-ratom evt topic-ratom span-id]
-  ;(println "handle-arrow-up-key-down")
-  ;(println "    @topic-ratom: " @topic-ratom ", span-id: " span-id)
   (.preventDefault evt)
   (when-not (is-top-visible-tree-id? root-ratom span-id)
     (let [editor-id (change-tree-id-type span-id "editor")
@@ -728,7 +719,6 @@
   "Respond to a down arrow key-down event by moving the editor and focus to
   the next lower down visible headline."
   [root-ratom evt topic-ratom span-id]
-  ;(println "move-focus-down-one-line")
   (.preventDefault evt)
   (when-not (is-bottom-visible-tree-id? root-ratom span-id)
     (let [editor-id (change-tree-id-type span-id "editor")
