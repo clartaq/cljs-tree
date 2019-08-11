@@ -592,7 +592,7 @@
           (prune-topic! root-ratom id-of-existing-subtree)))
     (scroll-ele-into-view id-to-focus)))
 
-(defn un-indent-branch!
+(defn outdent-branch!
   "Un-indent (promote) the given branch and return its new id."
   [root-ratom branch-id]
   (let [parts (tree-id->nav-index-vector branch-id)
@@ -609,7 +609,7 @@
     (move-branch! root-ratom branch-id promoted-id)
     promoted-id))
 
-(defn un-indent-all-children!
+(defn outdent-all-children!
   "Un-indent (promote) all the children of the given node."
   [root-ratom span-id & [children]]
   (let [child-array (or children (has-children? root-ratom span-id))
@@ -618,7 +618,7 @@
     ;; would "capture" lower children under the higher children.
     (doseq [idx (range (dec (count child-array)) -1 -1)]
       (let [nxt-id (set-leaf-index first-id idx)]
-        (un-indent-branch! root-ratom nxt-id)))
+        (outdent-branch! root-ratom nxt-id)))
     span-id))
 
 ;;;-----------------------------------------------------------------------------
@@ -651,7 +651,7 @@
     (if-let [children (has-children? root-ratom span-id)]
       (do
         (when (expanded? root-ratom span-id)
-          (un-indent-all-children! root-ratom span-id children))
+          (outdent-all-children! root-ratom span-id children))
         (prune-topic! root-ratom span-id)
         ;; Did we delete all of the children that might have advanced to the
         ;; same id as span-id. That is, was it the last visible branch in the
@@ -692,14 +692,14 @@
           (fn []
             (focus-and-scroll-editor-for-id demoted-id caret-position)))))))
 
-(defn un-indent
-  "Un-indent the current headline one level."
+(defn outdent
+  "outdent the current headline one level."
   [root-ratom evt topic-ratom span-id]
   (.preventDefault evt)
   (when-not (is-top-level? span-id)
     (let [editor-id (change-tree-id-type span-id "editor")
           caret-position (get-caret-position editor-id)
-          promoted-id (un-indent-branch! root-ratom span-id)]
+          promoted-id (outdent-branch! root-ratom span-id)]
       (r/after-render
         (fn []
           (focus-and-scroll-editor-for-id promoted-id caret-position))))))
@@ -759,8 +759,8 @@
       (= the-key "Backspace") (delete-one-character-backward
                                 root-ratom evt topic-ratom span-id)
       (and (= the-key "Tab")
-           shifted) (un-indent root-ratom evt
-                               topic-ratom span-id)
+           shifted) (outdent root-ratom evt
+                             topic-ratom span-id)
       (= the-key "Tab") (indent root-ratom evt topic-ratom span-id)
       (= the-key "ArrowUp") (move-focus-up-one-line
                               root-ratom evt topic-ratom span-id)
