@@ -93,11 +93,11 @@ Once satisfied that the rock data manipulation works, start adding to, modifying
 
     If the existing headline already has sub-headlines, the new headline will also appear as a sub-headling. If the existing headline does not have any sub-headings, the new headline will be created as a "sibling" of the existing headline.
 
-- **Promoting/Un-Indenting and Demoting/Indenting Headlines**: An existing headline can be indented by pressing the `Tab` key. A headline can be un-indented by holding down the `Shift` key then pressing the `Tab` key.
+- **Promoting/Outdenting and Demoting/Indenting Headlines**: An existing headline can be indented by pressing the `Tab` key. A headline can be outdented by holding down the `Shift` key then pressing the `Tab` key.
 
     Headlines can only be indented one level below their parent headline. They can, of course, have additional sub-headlines that are further indented.
 
-    Headlines cannot be un-indented further than the top-level headlines in the outline.
+    Headlines cannot be outdented further than the top-level headlines in the outline.
 
 - **Expand/Collapse Branches**: If a headline has a chevron next to it, you can toggle expanding or collapsing the branch by clicking the chevron.
 - **Deleting Characters**: Pressing the "Delete" key will delete characters in front of the caret (towards the end of the outline.) Pressing the "Backspace" key will delete characters behind the caret (towards the beginning of the outline.)
