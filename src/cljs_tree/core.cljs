@@ -765,12 +765,21 @@
     (r/after-render
       (fn [] (highlight-and-scroll-editor-for-id span-id 0 cnt)))))
 
+(defn toggle-headline-expansion
+  "Toggle the expansion state of the current headline."
+  [root-ratom evt topic-ratom span-id]
+  (.preventDefault evt)
+  (toggle-node-expansion! root-ratom span-id))
+
 (defn handle-key-down
   "Detect key-down events and dispatch them to the appropriate handlers."
   [evt root-ratom topic-ratom span-id]
   (let [evt-map (unpack-keyboard-event evt)
         the-key (:key evt-map)
-        shifted (:shift-key evt-map)]
+        shifted (:shift-key evt-map)
+        cmd (:cmd-key evt-map)
+        alt (:alt-key evt-map)
+        key-code (:key-code evt-map)]
     (cond
       (and (= the-key "Enter")
            shifted) (insert-new-headline-above
@@ -789,6 +798,10 @@
                               root-ratom evt topic-ratom span-id)
       (= the-key "ArrowDown") (move-focus-down-one-line
                                 root-ratom evt topic-ratom span-id)
+      ;;alt-cmd-,
+      (and (= key-code 188)
+           cmd alt) (toggle-headline-expansion
+                      root-ratom evt topic-ratom span-id)
       :default nil)))
 
 ;;;-----------------------------------------------------------------------------
