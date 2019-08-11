@@ -86,14 +86,14 @@
                            (ct/tree-id-parts->tree-id-string ["root" "1" 1 "anything"])))))))
 
 (deftest has-children?-test
-  (testing "The 'has-children' function"
+  (testing "The 'has-children?' function"
     (let [ratom (r/atom (:tree a-tree))]
-      (is (nil? (ct/has-children ratom (ct/tree-id-parts->tree-id-string ["root" "0" "topic"]))))
-      (is (thrown? js/Error (ct/has-children ratom nil)))
-      (is (thrown? js/Error (ct/has-children nil (ct/tree-id-parts->tree-id-string ["root" "0" "topic"]))))
-      (is (nil? (ct/has-children ratom (ct/tree-id-parts->tree-id-string ["root" "1" 2 4 "topic"]))))
-      (is (seq (ct/has-children ratom (ct/tree-id-parts->tree-id-string ["root" "1" 2 "topic"]))))
-      (is (seq (ct/has-children ratom (ct/tree-id-parts->tree-id-string ["root" "2" 0 4 "topic"])))))))
+      (is (nil? (ct/has-children? ratom (ct/tree-id-parts->tree-id-string ["root" "0" "topic"]))))
+      (is (thrown? js/Error (ct/has-children? ratom nil)))
+      (is (thrown? js/Error (ct/has-children? nil (ct/tree-id-parts->tree-id-string ["root" "0" "topic"]))))
+      (is (nil? (ct/has-children? ratom (ct/tree-id-parts->tree-id-string ["root" "1" 2 4 "topic"]))))
+      (is (seq (ct/has-children? ratom (ct/tree-id-parts->tree-id-string ["root" "1" 2 "topic"]))))
+      (is (seq (ct/has-children? ratom (ct/tree-id-parts->tree-id-string ["root" "2" 0 4 "topic"])))))))
 
 (deftest is-expanded?-test
   (testing "The 'expanded?' function")
@@ -107,74 +107,74 @@
     (is (true? (ct/expanded? ratom (ct/tree-id-parts->tree-id-string ["root" "2" 0 4 "topic"]))))))
 
 (deftest expand-node-test
-  (testing "The 'expand-node' function"
+  (testing "The 'expand-node!' function"
     ; Make a local copy. Don't mess with the original.
     (let [local-map (:tree a-tree)
           ratom (r/atom local-map)]
 
       ; Check that it works for a branch that is not expanded.
       (let [node-id (ct/tree-id-parts->tree-id-string ["root" 1 2 "topic"])
-            _ (ct/expand-node ratom node-id)
+            _ (ct/expand-node! ratom node-id)
             ba (ct/get-topic ratom node-id)]
         (is (true? (:expanded ba))))
 
       ; Check that it works for a branch that is already expanded.
       (let [node-id (ct/tree-id-parts->tree-id-string ["root" 2 0 4 "topic"])
-            _ (ct/expand-node ratom node-id)
+            _ (ct/expand-node! ratom node-id)
             ba (ct/get-topic ratom node-id)]
         (is (true? (:expanded ba))))
 
       ; Check that it works for a branch that doesn't already have the keyword.
       (let [node-id (ct/tree-id-parts->tree-id-string ["root" 2 0 "topic"])
-            _ (ct/expand-node ratom node-id)
+            _ (ct/expand-node! ratom node-id)
             ba (ct/get-topic ratom node-id)]
         (is (true? (:expanded ba)))))))
 
 (deftest collapse-node-test
-  (testing "The 'collapse-node' function"
+  (testing "The 'collapse-node!' function"
     ; Make a local copy. Don't mess with the original.
     (let [local-map (:tree a-tree)
           ratom (r/atom local-map)]
 
       ; Check that it works for a branch that is already collapsed.
       (let [node-id (ct/tree-id-parts->tree-id-string ["root" 1 2 "topic"])
-            _ (ct/collapse-node ratom node-id)
+            _ (ct/collapse-node! ratom node-id)
             ba (ct/get-topic ratom node-id)]
         (is (nil? (:expanded ba))))
 
       ; Check that it works for a branch that is expanded.
       (let [node-id (ct/tree-id-parts->tree-id-string ["root" 2 0 4 "topic"])
-            _ (ct/collapse-node ratom node-id)
+            _ (ct/collapse-node! ratom node-id)
             ba (ct/get-topic ratom node-id)]
         (is (nil? (:expanded ba))))
 
       ; Check that it works for a branch that doesn't already have the keyword.
       (let [node-id (ct/tree-id-parts->tree-id-string ["root" 2 0 "topic"])
-            _ (ct/collapse-node ratom node-id)
+            _ (ct/collapse-node! ratom node-id)
             ba (ct/get-topic ratom node-id)]
         (is (nil? (:expanded ba)))))))
 
 (deftest toggle-node-expansion-test
-  (testing "The 'toggle-node-expansion' function"
+  (testing "The 'toggle-node-expansion!' function"
     ; Make a local copy. Don't mess with the original.
     (let [local-map (:tree a-tree)
           ratom (r/atom local-map)]
 
       ; Check that it works for a branch that is collapsed.
       (let [node-id (ct/tree-id-parts->tree-id-string ["root" 1 2 "topic"])
-            _ (ct/toggle-node-expansion ratom node-id)
+            _ (ct/toggle-node-expansion! ratom node-id)
             ba (ct/get-topic ratom node-id)]
         (is (true? (:expanded ba))))
 
       ; Check that it works for a branch that is expanded.
       (let [node-id (ct/tree-id-parts->tree-id-string ["root" 2 0 4 "topic"])
-            _ (ct/toggle-node-expansion ratom node-id)
+            _ (ct/toggle-node-expansion! ratom node-id)
             ba (ct/get-topic ratom node-id)]
         (is (false? (:expanded ba))))
 
       ; Check that it works for a branch that doesn't already have the keyword.
       (let [node-id (ct/tree-id-parts->tree-id-string ["root" 2 0 "topic"])
-            _ (ct/toggle-node-expansion ratom node-id)
+            _ (ct/toggle-node-expansion! ratom node-id)
             ba (ct/get-topic ratom node-id)]
         (is (nil? (:expanded ba)))))))
 
@@ -279,7 +279,7 @@
                           ["root" 2 0 4 0 "blah-blah"])
             retval (ct/prune-topic! ratom id-to-prune)]
         (is (= "The Real Fifth on Third Level" (:topic retval)))
-        (is (nil? (ct/has-children ratom id-to-prune))))
+        (is (nil? (ct/has-children? ratom id-to-prune))))
 
       ; Delete multiple times in the same group of siblings
       (let [first-id-to-prune (ct/tree-id-parts->tree-id-string
@@ -360,6 +360,6 @@
       ; This failed in an early version of the function.
       (let [parent-id (ct/tree-id-parts->tree-id-string ["root" 0 1 "topic"])
             last-visible-child-id (ct/tree-id-parts->tree-id-string ["root" 0 1 2 0 "topic"])]
-      (ct/expand-node ratom parent-id)
+      (ct/expand-node! ratom parent-id)
       (is (= last-visible-child-id
              (ct/id-of-last-visible-child ratom parent-id)))))))
