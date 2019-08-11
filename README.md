@@ -51,6 +51,9 @@ get a browser-connected REPL. An easy way to try it is:
 
 and you should see an alert in the browser window.
 
+Running this setup also will start running integration tests automatically. To check the status of integration tests, open a browser tab to 
+`http://localhost:9500/figwheel-extra-main/auto-testing`.
+
 ## Build and Run a "Production" Version
 
 To clean all compiled files:
