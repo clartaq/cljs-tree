@@ -89,9 +89,13 @@ Once satisfied that the rock data manipulation works, start adding to, modifying
 
 - **Select a Headline for Editing**: To edit a headline, just click on it and make your changes. Headlines may be any length. The headline will wrap as needed to accomodate long headlines.
 - **Moving Up and Down**: Use the up arrow and down arrow keys to move the editing focus up and down the outline. Moving to a collapsed headline will leave it in a collapsed state. Likewise, moving to a headline that is already expanded will not change the expansion state.
-- **Adding a New Headline**: To add a new headline, click any existing headline and press `Return`. A new headline will be inserted below the current headline and the editing focus will be move to the new headline.
+- **Adding a New Headline**: To add a new headline below an existing one, click any existing headline and press `Return`. A new headline will be inserted below the current headline and the editing focus will be move to the new headline.
 
     If the existing headline already has sub-headlines, the new headline will also appear as a sub-headling. If the existing headline does not have any sub-headings, the new headline will be created as a "sibling" of the existing headline.
+    
+    You can add a new headline _above_ the current headline by pressing `Shift-Return` instead.
+
+    In both cases, the inserted placeholder text will be highlighted, ready to overwrite by typing.
 
 - **Promoting/Outdenting and Demoting/Indenting Headlines**: An existing headline can be indented by pressing the `Tab` key. A headline can be outdented by holding down the `Shift` key then pressing the `Tab` key.
 

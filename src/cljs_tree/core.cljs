@@ -36,10 +36,10 @@
   []
   1.5)
 
-(defn empty-test-topic
-  "Return the map to be used for an empty test topic."
+(defn new-topic
+  "Return the map to be used for a new topic."
   []
-  {:topic ""})
+  {:topic "New Headline"})
 
 ;;;-----------------------------------------------------------------------------
 ;;; Utilities
@@ -420,6 +420,18 @@
     (when (seq (select-keys @my-cursor [:expanded]))
       (swap! my-cursor update :expanded not))))
 
+(defn highlight-and-scroll-editor-for-id
+  [tree-id begin-highlight end-highlight]
+  (when tree-id
+    (let [editor-id (change-tree-id-type tree-id "editor")
+          editor-ele (get-element-by-id editor-id)]
+      (when-not (editing? editor-id)
+        (let [label-id (change-tree-id-type tree-id "label")]
+          (swap-display-properties label-id editor-id)))
+      (.focus editor-ele)
+      (scroll-ele-into-view editor-id)
+      (.setSelectionRange editor-ele begin-highlight end-highlight))))
+
 (defn focus-and-scroll-editor-for-id
   "Focus the editor associated with the id (assumes that the label associated
   with the id is visible). If needed, scroll the editor into view. If a caret
@@ -735,15 +747,23 @@
   (.preventDefault evt)
   (let [id-of-new-child (if (expanded? root-ratom span-id)
                           (insert-child-index-into-parent-id span-id 0)
-                          (increment-leaf-index span-id))]
-    (graft-topic! root-ratom id-of-new-child (empty-test-topic))
-    (let [id-of-new-editor (change-tree-id-type id-of-new-child "editor")
-          id-of-new-label (change-tree-id-type id-of-new-child "label")]
-      ;; Wait for rendering to catch up.
-      (r/after-render
-        (fn []
-          (swap-display-properties id-of-new-label id-of-new-editor)
-          (.focus (get-element-by-id id-of-new-editor)))))))
+                          (increment-leaf-index span-id))
+        new-headline (new-topic)
+        cnt (count (:topic new-headline))]
+    (graft-topic! root-ratom id-of-new-child new-headline)
+    (r/after-render
+      (fn [] (highlight-and-scroll-editor-for-id id-of-new-child 0 cnt)))))
+
+(defn insert-new-headline-above
+  "Insert a new headline above the current headline, pushing the current
+  headline down."
+  [root-ratom evt topic-ratom span-id]
+  (.preventDefault evt)
+  (let [new-headline (new-topic)
+        cnt (count (:topic new-headline))]
+    (graft-topic! root-ratom span-id new-headline)
+    (r/after-render
+      (fn [] (highlight-and-scroll-editor-for-id span-id 0 cnt)))))
 
 (defn handle-key-down
   "Detect key-down events and dispatch them to the appropriate handlers."
@@ -752,6 +772,9 @@
         the-key (:key evt-map)
         shifted (:shift-key evt-map)]
     (cond
+      (and (= the-key "Enter")
+           shifted) (insert-new-headline-above
+                      root-ratom evt topic-ratom span-id)
       (= the-key "Enter") (insert-new-headline-below
                             root-ratom evt topic-ratom span-id)
       (= the-key "Delete") (delete-one-character-forward
