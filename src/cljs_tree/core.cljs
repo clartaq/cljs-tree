@@ -623,7 +623,6 @@
   "Outdent (promote) the given branch and return its new id."
   [root-ratom branch-id]
   (when-not (is-top-level? branch-id)
-    (println "Going ahead with outdent")
     (let [parts (tree-id->nav-index-vector branch-id)
           less-parts (remove-last parts)
           promoted-id (increment-leaf-index (nav-index-vector->tree-id-string less-parts))
@@ -811,7 +810,7 @@
                               root-ratom evt topic-ratom span-id)
       (= the-key "ArrowDown") (move-focus-down-one-line
                                 root-ratom evt topic-ratom span-id)
-      ;;alt-cmd-,
+      ;; alt-cmd-,
       (and (= key-code 188)
            cmd alt) (toggle-headline-expansion
                       root-ratom evt topic-ratom span-id)
