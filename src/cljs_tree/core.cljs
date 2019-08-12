@@ -225,7 +225,7 @@
 (defn is-top-level?
   "Return true if topic-id represents a member of the top-level of topics."
   [topic-id]
-  (= 1 (tree-id->nav-index-vector topic-id)))
+  (= 1 (count (tree-id->nav-index-vector topic-id))))
 
 (defn tree-id->sortable-nav-string
   "Convert the element id to a string containing the vector indices
@@ -604,25 +604,42 @@
           (prune-topic! root-ratom id-of-existing-subtree)))
     (scroll-ele-into-view id-to-focus)))
 
-(defn outdent-branch!
-  "Un-indent (promote) the given branch and return its new id."
+(defn indent-branch!
+  "Indent the given branch and return its new id. If the branch cannot be
+  indented, return nil."
   [root-ratom branch-id]
-  (let [parts (tree-id->nav-index-vector branch-id)
-        less-parts (remove-last parts)
-        promoted-id (increment-leaf-index (nav-index-vector->tree-id-string less-parts))
-        siblings-to-move (reverse (siblings-below root-ratom branch-id))]
-    (when-not (empty? siblings-to-move)
-      (expand-node! root-ratom branch-id)
-      (let [where-to-append (where-to-append-next-child root-ratom branch-id)]
-        (loop [child (first siblings-to-move) siblings (rest siblings-to-move)]
-          (when child
-            (move-branch! root-ratom child where-to-append)
-            (recur (first siblings) (rest siblings))))))
-    (move-branch! root-ratom branch-id promoted-id)
-    promoted-id))
+  (when-not (is-top-tree-id? branch-id)
+    (when-let [previous-sibling (id-of-previous-sibling branch-id)]
+      (expand-node! root-ratom previous-sibling)
+      (let [sibling-child-count (count-children root-ratom previous-sibling)
+            sibling-parts (tree-id->tree-id-parts previous-sibling)
+            with-added-leaf (conj (remove-last sibling-parts) sibling-child-count)
+            demoted-prefix (tree-id-parts->tree-id-string with-added-leaf)
+            demoted-id (str demoted-prefix (topic-separator) "topic")]
+        (move-branch! root-ratom branch-id demoted-id)
+        demoted-id))))
+
+(defn outdent-branch!
+  "Outdent (promote) the given branch and return its new id."
+  [root-ratom branch-id]
+  (when-not (is-top-level? branch-id)
+    (println "Going ahead with outdent")
+    (let [parts (tree-id->nav-index-vector branch-id)
+          less-parts (remove-last parts)
+          promoted-id (increment-leaf-index (nav-index-vector->tree-id-string less-parts))
+          siblings-to-move (reverse (siblings-below root-ratom branch-id))]
+      (when (seq siblings-to-move)
+        (expand-node! root-ratom branch-id)
+        (let [where-to-append (where-to-append-next-child root-ratom branch-id)]
+          (loop [child (first siblings-to-move) siblings (rest siblings-to-move)]
+            (when child
+              (move-branch! root-ratom child where-to-append)
+              (recur (first siblings) (rest siblings))))))
+      (move-branch! root-ratom branch-id promoted-id)
+      promoted-id)))
 
 (defn outdent-all-children!
-  "Un-indent (promote) all the children of the given node."
+  "Outdent (promote) all the children of the given node."
   [root-ratom span-id & [children]]
   (let [child-array (or children (has-children? root-ratom span-id))
         first-id (id-of-first-child span-id)]
@@ -635,6 +652,10 @@
 
 ;;;-----------------------------------------------------------------------------
 ;;; Functions to handle keystroke events. Editing commands.
+;;;
+;;; NOTE that most of these functions actually mutate the tree of data, but
+;;; do not follow the convention of having the function name end with an
+;;; exclamation point.
 
 (defn delete-one-character-backward
   "Handle the special case when the current headline has no more characters.
@@ -689,29 +710,20 @@
   "Indent the current headline one level."
   [root-ratom evt topic-ratom span-id]
   (.preventDefault evt)
-  (when-not (is-top-tree-id? span-id)
-    (when-let [previous-sibling (id-of-previous-sibling span-id)]
-      (expand-node! root-ratom previous-sibling)
-      (let [sibling-child-count (count-children root-ratom previous-sibling)
-            editor-id (change-tree-id-type span-id "editor")
-            caret-position (get-caret-position editor-id)
-            sibling-parts (tree-id->tree-id-parts previous-sibling)
-            with-added-leaf (conj (remove-last sibling-parts) sibling-child-count)
-            demoted-prefix (tree-id-parts->tree-id-string with-added-leaf)
-            demoted-id (str demoted-prefix (topic-separator) "topic")]
-        (move-branch! root-ratom span-id demoted-id)
-        (r/after-render
-          (fn []
-            (focus-and-scroll-editor-for-id demoted-id caret-position)))))))
+  (let [editor-id (change-tree-id-type span-id "editor")
+        caret-position (get-caret-position editor-id)]
+    (when-let [demoted-id (indent-branch! root-ratom span-id)]
+      (r/after-render
+        (fn []
+          (focus-and-scroll-editor-for-id demoted-id caret-position))))))
 
 (defn outdent
   "outdent the current headline one level."
   [root-ratom evt topic-ratom span-id]
   (.preventDefault evt)
-  (when-not (is-top-level? span-id)
-    (let [editor-id (change-tree-id-type span-id "editor")
-          caret-position (get-caret-position editor-id)
-          promoted-id (outdent-branch! root-ratom span-id)]
+  (let [editor-id (change-tree-id-type span-id "editor")
+        caret-position (get-caret-position editor-id)]
+    (when-let [promoted-id (outdent-branch! root-ratom span-id)]
       (r/after-render
         (fn []
           (focus-and-scroll-editor-for-id promoted-id caret-position))))))
@@ -780,6 +792,7 @@
         cmd (:cmd-key evt-map)
         alt (:alt-key evt-map)
         key-code (:key-code evt-map)]
+    ;(println "evt-map: " evt-map)
     (cond
       (and (= the-key "Enter")
            shifted) (insert-new-headline-above
