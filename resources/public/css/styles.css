@@ -108,6 +108,9 @@ html, body {
     --footer-background-color: #575757;
     --blockquote-color: #777777;
     --menu-item-link-color: #a0e0ff;
+
+    --chevron-color: #575757;
+
     /* For in-line code segments of text. */
     --code-background-color: #f0f0f0;
     /* Color and transparency for background overlay used during modal
@@ -329,11 +332,21 @@ p {
     flex: 0 0 auto;
     cursor: default;
     font-size: 70%;
+    color: var(--chevron-color);
     width: 0.6rem;
 
-    padding: 0.1rem 0.5rem 0.1rem 0.1rem;
+    padding: 0.1rem 0.45rem 0.1rem 0.15rem;
+
+    opacity: 0.9;
+    transition: opacity 0.3s, font-size 0.3s, color 0.3s ease-in-out;
 
     background-color: lavender;
+}
+
+.tree-control--chevron-div:hover {
+    font-size: 75%;
+    opacity: 1;
+    color: black;
 }
 
 .tree-control--topic-info-div {
