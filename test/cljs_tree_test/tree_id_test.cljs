@@ -70,12 +70,39 @@
     (is (= "2-5-32" (ct/tree-id->sortable-nav-string
                       (str "root" ts "2" ts "5" ts "32" ts "anything"))))))
 
+(deftest set-leaf-index-test
+  (testing "The 'set-leaf-index-test' function"
+    (is (= (str "root" ts "5" ts "topic")
+           (ct/set-leaf-index (str "root" ts "0" ts "topic") 5)))
+    (is (= (str "root" ts "2" ts "5" ts "14" ts "anything")
+           (ct/set-leaf-index
+             (str "root" ts "2" ts "5" ts "32" ts "anything") 14)))))
+
+(deftest increment-leaf-index-by-test
+  (testing "The 'increment-leaf-index-by' function"
+    (is (= (str "root" ts "1" ts "topic")
+           (ct/increment-leaf-index-by (str "root" ts "0" ts "topic") 1)))
+    (is (= (str "root" ts "2" ts "5" ts "35" ts "anything")
+           (ct/increment-leaf-index-by
+             (str "root" ts "2" ts "5" ts "32" ts "anything") 3)))
+    (is (= (str "root" ts "2" ts "5" ts "29" ts "anything")
+           (ct/increment-leaf-index-by
+             (str "root" ts "2" ts "5" ts "32" ts "anything") -3)))))
+
 (deftest increment-leaf-index-test
   (testing "The 'increment-leaf-index' function"
     (is (= (str "root" ts "1" ts "topic")
            (ct/increment-leaf-index (str "root" ts "0" ts "topic"))))
     (is (= (str "root" ts "2" ts "5" ts "33" ts "anything")
            (ct/increment-leaf-index
+             (str "root" ts "2" ts "5" ts "32" ts "anything"))))))
+
+(deftest decrement-leaf-index-test
+  (testing "The 'decrement-leaf-index' function"
+    (is (= (str "root" ts "-1" ts "topic")
+           (ct/decrement-leaf-index (str "root" ts "0" ts "topic"))))
+    (is (= (str "root" ts "2" ts "5" ts "31" ts "anything")
+           (ct/decrement-leaf-index
              (str "root" ts "2" ts "5" ts "32" ts "anything"))))))
 
 (deftest change-tree-id-type-test

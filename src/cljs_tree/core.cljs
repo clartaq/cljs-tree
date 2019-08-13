@@ -243,14 +243,35 @@
         new-parts (replace-at parts index-in-vector new-index)]
     (tree-id-parts->tree-id-string new-parts)))
 
+(defn increment-leaf-index-by
+  "Given the tree id of a leaf node, return a version of the same
+  tree id with the leaf index incremented by the given value."
+  [tree-id by]
+  (let [parts (tree-id->tree-id-parts tree-id)
+        index-in-vector (- (count parts) 2)
+        new-index (+ (int (nth parts index-in-vector)) by)
+        new-parts (replace-at parts index-in-vector new-index)]
+    (tree-id-parts->tree-id-string new-parts)))
+
 (defn increment-leaf-index
   "Given the tree id of a leaf node, return an id with the node index
   incremented."
   [tree-id]
   (let [parts (tree-id->tree-id-parts tree-id)
         index-in-vector (- (count parts) 2)
-        leaf-index (int (nth parts index-in-vector))
-        new-parts (replace-at parts index-in-vector (inc leaf-index))]
+        inc-index (inc (int (nth parts index-in-vector)))
+        new-parts (replace-at parts index-in-vector inc-index)]
+    (tree-id-parts->tree-id-string new-parts)))
+
+(defn decrement-leaf-index
+  "Given the tree id of a leaf node, return an id with the node index
+  decremented. Can produce leaf indices < 0, which some functions
+  depend on."
+  [tree-id]
+  (let [parts (tree-id->tree-id-parts tree-id)
+        index-in-vector (- (count parts) 2)
+        dec-index (dec (int (nth parts index-in-vector)))
+        new-parts (replace-at parts index-in-vector dec-index)]
     (tree-id-parts->tree-id-string new-parts)))
 
 (defn change-tree-id-type
@@ -458,6 +479,15 @@
       (tree-id-parts->tree-id-string
         (into (remove-last-two parts) [(dec last-path-index) "topic"])))))
 
+(defn siblings-above
+  "Return a (possibly empty) seq of siblings that appear higher in the tree
+  display than the one denoted by the tree-id."
+  [root-ratom tree-id]
+  (loop [id (decrement-leaf-index tree-id) res []]
+    (if (nil? (get-topic root-ratom id))
+      res
+      (recur (decrement-leaf-index id) (conj res id)))))
+
 (defn siblings-below
   "Return a (possibly empty) seq of siblings that appear lower in the tree
   display than the one denoted by tree-id."
@@ -594,14 +624,14 @@
 
 (defn move-branch!
   "Move an existing branch to a new location."
-  [root-ratom id-of-existing-subtree id-of-new-subtree]
-  (let [topic-to-move (get-topic root-ratom id-of-existing-subtree)
-        id-to-focus (change-tree-id-type id-of-new-subtree "label")]
-    (if (lower? id-of-existing-subtree id-of-new-subtree)
-      (do (prune-topic! root-ratom id-of-existing-subtree)
-          (graft-topic! root-ratom id-of-new-subtree topic-to-move))
-      (do (graft-topic! root-ratom id-of-new-subtree topic-to-move)
-          (prune-topic! root-ratom id-of-existing-subtree)))
+  [root-ratom source-id destination-id]
+  (let [topic-to-move (get-topic root-ratom source-id)
+        id-to-focus (change-tree-id-type destination-id "label")]
+    (if (lower? source-id destination-id)
+      (do (prune-topic! root-ratom source-id)
+          (graft-topic! root-ratom destination-id topic-to-move))
+      (do (graft-topic! root-ratom destination-id topic-to-move)
+          (prune-topic! root-ratom source-id)))
     (scroll-ele-into-view id-to-focus)))
 
 (defn indent-branch!
@@ -727,6 +757,31 @@
         (fn []
           (focus-and-scroll-editor-for-id promoted-id caret-position))))))
 
+(defn move-headline-up
+  [root-ratom evt topic-ratom span-id]
+  (println "move-headline-up")
+  (.preventDefault evt)
+  (let [siblings-above (siblings-above root-ratom span-id)]
+    (when (pos? (count siblings-above))
+      (let [editor-id (change-tree-id-type span-id "editor")
+            caret-position (get-caret-position editor-id)
+            new-id (first siblings-above)
+            new-editor-id (change-tree-id-type new-id "editor")]
+        (move-branch! root-ratom span-id new-id)
+        (focus-and-scroll-editor-for-id new-editor-id caret-position)))))
+
+(defn move-headline-down
+  [root-ratom evt topic-ratom span-id]
+  (.preventDefault evt)
+  (let [siblings-below (siblings-below root-ratom span-id)]
+    (when (pos? (count siblings-below))
+      (let [editor-id (change-tree-id-type span-id "editor")
+            caret-position (get-caret-position editor-id)
+            new-id (increment-leaf-index-by span-id 2)
+            new-editor-id (change-tree-id-type (increment-leaf-index span-id) "editor")]
+        (move-branch! root-ratom span-id new-id)
+        (focus-and-scroll-editor-for-id new-editor-id caret-position)))))
+
 (defn move-focus-up-one-line
   "Respond to an up arrow key-down event my moving the editor and focus to
   the next higher up visible headline."
@@ -787,15 +842,16 @@
   [evt root-ratom topic-ratom span-id]
   (let [evt-map (unpack-keyboard-event evt)
         the-key (:key evt-map)
-        shifted (:shift-key evt-map)
+        shift (:shift-key evt-map)
+        ctrl (:ctrl-key evt-map)
         cmd (:cmd-key evt-map)
         alt (:alt-key evt-map)
         key-code (:key-code evt-map)]
     ;(println "evt-map: " evt-map)
     (cond
       (and (= the-key "Enter")
-           shifted) (insert-new-headline-above
-                      root-ratom evt topic-ratom span-id)
+           shift) (insert-new-headline-above
+                    root-ratom evt topic-ratom span-id)
       (= the-key "Enter") (insert-new-headline-below
                             root-ratom evt topic-ratom span-id)
       (= the-key "Delete") (delete-one-character-forward
@@ -803,16 +859,20 @@
       (= the-key "Backspace") (delete-one-character-backward
                                 root-ratom evt topic-ratom span-id)
       (and (= the-key "Tab")
-           shifted) (outdent root-ratom evt
-                             topic-ratom span-id)
+           shift) (outdent root-ratom evt
+                           topic-ratom span-id)
       (= the-key "Tab") (indent root-ratom evt topic-ratom span-id)
+      (and (= the-key "ArrowUp")
+           alt cmd) (move-headline-up root-ratom evt topic-ratom span-id)
+      (and (= the-key "ArrowDown")
+           alt cmd) (move-headline-down root-ratom evt topic-ratom span-id)
       (= the-key "ArrowUp") (move-focus-up-one-line
                               root-ratom evt topic-ratom span-id)
       (= the-key "ArrowDown") (move-focus-down-one-line
                                 root-ratom evt topic-ratom span-id)
       ;; alt-cmd-,
       (and (= key-code 188)
-           cmd alt) (toggle-headline-expansion
+           alt cmd) (toggle-headline-expansion
                       root-ratom evt topic-ratom span-id)
       :default nil)))
 

@@ -51,6 +51,8 @@ get a browser-connected REPL. An easy way to try it is:
 
 and you should see an alert in the browser window.
 
+Any changes you make to functionality in the REPL or by making changes to a source file will be reflected (nearly) instantaneously in the browser window.
+
 Running this setup also will start running integration tests automatically. To check the status of integration tests, open a browser tab to 
 `http://localhost:9500/figwheel-extra-main/auto-testing`.
 
@@ -67,15 +69,15 @@ To create a production build run:
 And open your browser in `resources/public/index.html`. You will not
 get live reloading, nor a REPL. 
 
-### Testing
+## Testing
 
-The repository contains some unit tests. To run them
+The repository contains some unit tests. To run them once
 
 ```
     lein fig:test
 ```
 
-The rest results will appear in the console.
+The test results will appear in the console.
 
 ## Usage
 
@@ -103,7 +105,12 @@ Once satisfied that the rock data manipulation works, start adding to, modifying
 
     Headlines cannot be outdented further than the top-level headlines in the outline.
 
+- **Moving Headlines Up or Down**: You can move a headline up or down among its siblings using `Option-Command-UpArrow` and `Option-Command-DownArrow`, respectively.
+
+    You can only change the order of siblings this way, but when used with the Indent and Outdent functions, you can completely reorganize the outline.
+
 - **Expand/Collapse Branches**: If a headline has a chevron next to it, you can toggle expanding or collapsing the branch by clicking the chevron.
+
 - **Deleting Characters**: Pressing the "Delete" key will delete characters in front of the caret (towards the end of the outline.) Pressing the "Backspace" key will delete characters behind the caret (towards the beginning of the outline.)
 
     Completely deleting a headline will also delete any sub-headings it may have had.
@@ -121,8 +128,6 @@ Some technical documentation, including a description of the tree data structure
 ## To Do
 
 - Allow deletion of entire headlines at once.
-- Allow headlines to be reorganized by moving branches up and down in the hierarch.
-- Provide a keystroke shortcut to toggle headline expansions for single headlines and for the entire outline at once.
 
 ## License
 
