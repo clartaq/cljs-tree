@@ -759,7 +759,6 @@
 
 (defn move-headline-up
   [root-ratom evt topic-ratom span-id]
-  (println "move-headline-up")
   (.preventDefault evt)
   (let [siblings-above (siblings-above root-ratom span-id)]
     (when (pos? (count siblings-above))
