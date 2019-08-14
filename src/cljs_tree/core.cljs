@@ -39,7 +39,7 @@
 (defn new-topic
   "Return the map to be used for a new topic."
   []
-  {:topic "New Headline"})
+  {:topic "Type new content here"})
 
 ;;;-----------------------------------------------------------------------------
 ;;; Utilities
@@ -136,6 +136,16 @@
    :repeating?         (.-repeat evt)
    :shift-key          (.-shiftKey evt)
    :which              (.-which evt)})
+
+(defn key-evt->map
+  "Unpack the information in a keyboard event into a map that can be used
+  easily to dispatch the event to a handler"
+  [evt]
+  {:key       (.-key evt)
+   :modifiers {:ctrl  (.-ctrlKey evt)
+               :shift (.-shiftKey evt)
+               :alt   (.-altKey evt)
+               :cmd   (or (.-metaKey evt) (.-ctrlKey evt))}})
 
 ;;------------------------------------------------------------------------------
 ;; Just a few miscellaneous utility functions.
@@ -839,36 +849,56 @@
   (.preventDefault evt)
   (toggle-node-expansion! root-ratom span-id))
 
+(defonce default-mods {:ctrl false :alt false :shift false :cmd false})
+
+(defn- merge-def-mods
+  [m]
+  (merge default-mods m))
+
 (defn handle-key-down
   "Detect key-down events and dispatch them to the appropriate handlers."
-  [evt root-ratom topic-ratom span-id]
-  (let [evt-map (unpack-keyboard-event evt)
-        the-key (:key evt-map)
-        shift (:shift-key evt-map)
-        ctrl (:ctrl-key evt-map)
-        cmd (:cmd-key evt-map)
-        alt (:alt-key evt-map)
-        key-code (:key-code evt-map)
+  [root-ratom evt topic-ratom span-id]
+  (let [km (key-evt->map evt)
         args {:root-ratom  root-ratom
               :evt         evt
               :topic-ratom topic-ratom
               :span-id     span-id}]
-    ;(println "evt-map: " evt-map)
+    ;(println "km: " km)
     (cond
-      (and (= the-key "Enter")
-           shift) (insert-new-headline-above args)
-      (= the-key "Enter") (insert-new-headline-below args)
-      ;root-ratom evt topic-ratom span-id)
-      (= the-key "Delete") (delete-one-character-forward args)
-      (= the-key "Backspace") (delete-one-character-backward args)
-      (and (= the-key "Tab") shift) (outdent args)
-      (= the-key "Tab") (indent args)
-      (and (= the-key "ArrowUp") alt cmd) (move-headline-up args)
-      (and (= the-key "ArrowDown") alt cmd) (move-headline-down args)
-      (= the-key "ArrowUp") (move-focus-up-one-line args)
-      (= the-key "ArrowDown") (move-focus-down-one-line args)
-      ;; alt-cmd-,
-      (and (= key-code 188) alt cmd) (toggle-headline-expansion args)
+      (= km {:key "Enter" :modifiers (merge-def-mods {:shift true})})
+      (insert-new-headline-above args)
+
+      (= km {:key "Enter" :modifiers (merge-def-mods {})})
+      (insert-new-headline-below args)
+
+      (= km {:key "Delete" :modifiers (merge-def-mods {})})
+      (delete-one-character-forward args)
+
+      (= km {:key "Backspace" :modifiers (merge-def-mods {})})
+      (delete-one-character-backward args)
+
+      (= km {:key "Tab" :modifiers (merge-def-mods {:shift true})})
+      (outdent args)
+
+      (= km {:key "Tab" :modifiers (merge-def-mods {})})
+      (indent args)
+
+      (= km {:key "ArrowUp" :modifiers (merge-def-mods {:alt true :cmd true})})
+      (move-headline-up args)
+
+      (= km {:key "ArrowDown" :modifiers (merge-def-mods {:alt true :cmd true})})
+      (move-headline-down args)
+
+      (= km {:key "ArrowUp" :modifiers (merge-def-mods {})})
+      (move-focus-up-one-line args)
+
+      (= km {:key "ArrowDown" :modifiers (merge-def-mods {})})
+      (move-focus-down-one-line args)
+
+      ;; alt-cmd-, despite what the :key looks like
+      (= km {:key "≤" :modifiers (merge-def-mods {:cmd true :alt true})})
+      (toggle-headline-expansion args)
+
       :default nil)))
 
 ;;;-----------------------------------------------------------------------------
@@ -944,7 +974,7 @@
   "Handle the click on the expansion chevron by toggling the state of
   expansion in the application state atom. This will cause the tree
   to re-render visually."
-  [evt root-ratom]
+  [root-ratom evt]
   (let [ele-id (event->target-id evt)
         kwv (tree-id->tree-path-nav-vector ele-id)
         ekwv (conj kwv :expanded)]
@@ -964,20 +994,19 @@
   [root-ratom subtree-ratom chevron-id]
   (let [clickable-chevron-props {:class    "tree-control--chevron-div"
                                  :id       chevron-id
-                                 :on-click #(handle-chevron-click! % root-ratom)}
+                                 :on-click #(handle-chevron-click! root-ratom %)}
         invisible-chevron-props {:class "tree-control--chevron-div"
                                  :id    chevron-id
                                  :style {:opacity "0.0"}}
-        ;hand-glass (str \uF09F \u948D)
         es (cond
              (has-visible-children? @subtree-ratom) [:div clickable-chevron-props
                                                      (str \u25BC \space)]
              (:children @subtree-ratom) [:div clickable-chevron-props
-                                         (str \u25BA \space)] ;\u25BA \space)]
+                                         (str \u25BA \space)]
              ; No children, so no chevron is displayed.
              ; This stuff is to ensure consistent horizontal spacing
              ; even though no expansion chevron is visible.
-             :default [:div invisible-chevron-props (str \u25BA \space)])]
+             :default [:div invisible-chevron-props (str \u2022 \space)])]
     es))
 
 (defn resize-textarea
@@ -1016,7 +1045,7 @@
       {:id           editor-id
        :style        {:display :none}
        :autoComplete "off"
-       :onKeyDown    #(handle-key-down % root-ratom topic-ratom topic-id)
+       :onKeyDown    #(handle-key-down root-ratom % topic-ratom topic-id)
        :onKeyUp      #(resize-textarea editor-id)
        :onFocus      (fn on-focus [evt]
                        ; Override default number of rows (2).
