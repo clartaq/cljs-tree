@@ -1,5 +1,5 @@
 (ns cljs-tree.demo-hierarchy
-  (:require  [reagent.core :as r]))
+  (:require [reagent.core :as r]))
 
 ;; The hierarchical tree of tags is contained in the following. It is possible
 ;; to change it dynamically and have it re-render correctly.
@@ -30,7 +30,13 @@
                                          :expanded true
                                          :children [{:topic    "Gum-Lickin' Warburger"
                                                      :expanded true
-                                                     :children [{:topic "Age"}
+                                                     :children [{:topic    "Biography"
+                                                                 :expanded nil
+                                                                 :children [{:topic "He was born a long time ago in some dusty, poor Southern town that is no longer there."}
+                                                                            {:topic "His dad was an itinerant tinkerer, specializing in the repair of 15th century tea pots."}
+                                                                            {:topic "His mom was a laundress who believed in the purifying power of plain ol' dirt. Her customers were not as fond of it, especially on their laundered clothes."}
+                                                                            {:topic "As a result of these career choices, the family remained very poor."}]}
+                                                                {:topic "Age"}
                                                                 {:topic "DOB"}
                                                                 {:topic "Obituary"}]}
                                                     {:topic "Bob Martin"}]}
