@@ -690,25 +690,22 @@
 ;;; exclamation point.
 
 (defn delete-one-character-backward
-  "Handle the special case when the current headline has no more characters.
+  "Handle the special case where the current headline has no more characters.
   Delete it and any children, then move the editor focus to the headline
   above it. Will not delete the last remaining top-level headline."
-  [{:keys [root-ratom evt topic-ratom span-id]} & [cursor-pos]]
-  (println "delete-one-character-backward: cursor-pos: " cursor-pos)
+  [{:keys [root-ratom evt topic-ratom span-id]} & [caret-pos]]
   (when (zero? (count @topic-ratom))
     (.preventDefault evt)
-    (let [previous-visible-topic-id (previous-visible-node root-ratom span-id)
-          previous-topic-value (get-topic root-ratom previous-visible-topic-id)
-          cursor-position (or cursor-pos (count (:topic previous-topic-value)))
-          previous-visible-editor-id (change-tree-id-type previous-visible-topic-id "editor")]
-      (prune-topic! root-ratom span-id)
-      (when (get-element-by-id previous-visible-editor-id)
-        (r/after-render
-          (fn []
-            (focus-and-scroll-editor-for-id previous-visible-topic-id cursor-position)))))))
+    (let [previous-visible-topic-id (previous-visible-node root-ratom span-id)]
+      (when-let [previous-topic-value (get-topic root-ratom previous-visible-topic-id)]
+        (let [caret-position (or caret-pos (count (:topic previous-topic-value)))
+              previous-visible-editor-id (change-tree-id-type previous-visible-topic-id "editor")]
+          (prune-topic! root-ratom span-id)
+          (when (get-element-by-id previous-visible-editor-id)
+            (focus-and-scroll-editor-for-id previous-visible-topic-id caret-position)))))))
 
 (defn delete-one-character-forward
-  "Handle the special case when there are no more characters in the headline.
+  "Handle the special case where there are no more characters in the headline.
   In that case the headline will be deleted and the focus will move to the
   previous visible node. Will not delete the last remaining top-level node."
   [{:keys [root-ratom evt topic-ratom span-id] :as args}]
@@ -794,9 +791,9 @@
   (.preventDefault evt)
   (when-not (is-top-visible-tree-id? root-ratom span-id)
     (let [editor-id (change-tree-id-type span-id "editor")
-          saved-cursor-position (.-selectionStart (get-element-by-id editor-id))
+          saved-caret-position (.-selectionStart (get-element-by-id editor-id))
           previous-visible-topic (previous-visible-node root-ratom span-id)]
-      (focus-and-scroll-editor-for-id previous-visible-topic saved-cursor-position))))
+      (focus-and-scroll-editor-for-id previous-visible-topic saved-caret-position))))
 
 (defn move-focus-down-one-line
   "Respond to a down arrow key-down event by moving the editor and focus to
@@ -805,9 +802,9 @@
   (.preventDefault evt)
   (when-not (is-bottom-visible-tree-id? root-ratom span-id)
     (let [editor-id (change-tree-id-type span-id "editor")
-          saved-cursor-position (.-selectionStart (get-element-by-id editor-id))
+          saved-caret-position (.-selectionStart (get-element-by-id editor-id))
           next-visible-topic (next-visible-node root-ratom span-id)]
-      (focus-and-scroll-editor-for-id next-visible-topic saved-cursor-position))))
+      (focus-and-scroll-editor-for-id next-visible-topic saved-caret-position))))
 
 (defn insert-new-headline-below
   "Handle a key-down event for the Enter/Return key. Insert a new headline
@@ -820,10 +817,10 @@
                           (insert-child-index-into-parent-id span-id 0)
                           (increment-leaf-index span-id))
         new-headline (new-topic)
-        cnt (count (:topic new-headline))]
+        num-chars (count (:topic new-headline))]
     (graft-topic! root-ratom id-of-new-child new-headline)
     (r/after-render
-      (fn [] (highlight-and-scroll-editor-for-id id-of-new-child 0 cnt)))))
+      (fn [] (highlight-and-scroll-editor-for-id id-of-new-child 0 num-chars)))))
 
 (defn insert-new-headline-above
   "Insert a new headline above the current headline, pushing the current
@@ -831,10 +828,10 @@
   [{:keys [root-ratom evt span-id]}]
   (.preventDefault evt)
   (let [new-headline (new-topic)
-        cnt (count (:topic new-headline))]
+        num-chars (count (:topic new-headline))]
     (graft-topic! root-ratom span-id new-headline)
     (r/after-render
-      (fn [] (highlight-and-scroll-editor-for-id span-id 0 cnt)))))
+      (fn [] (highlight-and-scroll-editor-for-id span-id 0 num-chars)))))
 
 (defn toggle-headline-expansion
   "Toggle the expansion state of the current headline."
