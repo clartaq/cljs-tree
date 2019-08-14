@@ -690,7 +690,8 @@
   "Handle the special case when the current headline has no more characters.
   Delete it and any children, then move the editor focus to the headline
   above it. Will not delete the last remaining top-level headline."
-  [root-ratom evt topic-ratom span-id & [cursor-pos]]
+  [{:keys [root-ratom evt topic-ratom span-id]} & [cursor-pos]]
+  (println "delete-one-character-backward: cursor-pos: " cursor-pos)
   (when (zero? (count @topic-ratom))
     (.preventDefault evt)
     (let [previous-visible-topic-id (previous-visible-node root-ratom span-id)
@@ -707,7 +708,7 @@
   "Handle the special case when there are no more characters in the headline.
   In that case the headline will be deleted and the focus will move to the
   previous visible node. Will not delete the last remaining top-level node."
-  [root-ratom evt topic-ratom span-id]
+  [{:keys [root-ratom evt topic-ratom span-id] :as args}]
   (when (zero? (count @topic-ratom))
     (.preventDefault evt)
     (if-let [children (has-children? root-ratom span-id)]
@@ -733,11 +734,11 @@
           (r/after-render
             (fn []
               (focus-and-scroll-editor-for-id next-topic-editor-id 0))))
-        (delete-one-character-backward root-ratom evt topic-ratom span-id 0)))))
+        (delete-one-character-backward args 0)))))
 
 (defn indent
   "Indent the current headline one level."
-  [root-ratom evt topic-ratom span-id]
+  [{:keys [root-ratom evt span-id]}]
   (.preventDefault evt)
   (let [editor-id (change-tree-id-type span-id "editor")
         caret-position (get-caret-position editor-id)]
@@ -748,7 +749,7 @@
 
 (defn outdent
   "outdent the current headline one level."
-  [root-ratom evt topic-ratom span-id]
+  [{:keys [root-ratom evt span-id]}]
   (.preventDefault evt)
   (let [editor-id (change-tree-id-type span-id "editor")
         caret-position (get-caret-position editor-id)]
@@ -758,7 +759,8 @@
           (focus-and-scroll-editor-for-id promoted-id caret-position))))))
 
 (defn move-headline-up
-  [root-ratom evt topic-ratom span-id]
+  "Move the current headline up one level in its group of siblings."
+  [{:keys [root-ratom evt span-id]}]
   (.preventDefault evt)
   (let [siblings-above (siblings-above root-ratom span-id)]
     (when (pos? (count siblings-above))
@@ -770,7 +772,8 @@
         (focus-and-scroll-editor-for-id new-editor-id caret-position)))))
 
 (defn move-headline-down
-  [root-ratom evt topic-ratom span-id]
+  "Move the current headline down one level in its group of siblings."
+  [{:keys [root-ratom evt span-id]}]
   (.preventDefault evt)
   (let [siblings-below (siblings-below root-ratom span-id)]
     (when (pos? (count siblings-below))
@@ -784,7 +787,7 @@
 (defn move-focus-up-one-line
   "Respond to an up arrow key-down event my moving the editor and focus to
   the next higher up visible headline."
-  [root-ratom evt topic-ratom span-id]
+  [{:keys [root-ratom evt span-id]}]
   (.preventDefault evt)
   (when-not (is-top-visible-tree-id? root-ratom span-id)
     (let [editor-id (change-tree-id-type span-id "editor")
@@ -795,7 +798,7 @@
 (defn move-focus-down-one-line
   "Respond to a down arrow key-down event by moving the editor and focus to
   the next lower down visible headline."
-  [root-ratom evt topic-ratom span-id]
+  [{:keys [root-ratom evt span-id]}]
   (.preventDefault evt)
   (when-not (is-bottom-visible-tree-id? root-ratom span-id)
     (let [editor-id (change-tree-id-type span-id "editor")
@@ -806,7 +809,7 @@
 (defn insert-new-headline-below
   "Handle a key-down event for the Enter/Return key. Insert a new headline
   in the tree and focus it, ready for editing."
-  [root-ratom evt topic-ratom span-id]
+  [{:keys [root-ratom evt span-id]}]
   ; If the topic span has children, add a new child in the zero-position
   ; Else add a new sibling below the current topic
   (.preventDefault evt)
@@ -822,7 +825,7 @@
 (defn insert-new-headline-above
   "Insert a new headline above the current headline, pushing the current
   headline down."
-  [root-ratom evt topic-ratom span-id]
+  [{:keys [root-ratom evt span-id]}]
   (.preventDefault evt)
   (let [new-headline (new-topic)
         cnt (count (:topic new-headline))]
@@ -832,7 +835,7 @@
 
 (defn toggle-headline-expansion
   "Toggle the expansion state of the current headline."
-  [root-ratom evt topic-ratom span-id]
+  [{:keys [root-ratom evt span-id]}]
   (.preventDefault evt)
   (toggle-node-expansion! root-ratom span-id))
 
@@ -845,34 +848,27 @@
         ctrl (:ctrl-key evt-map)
         cmd (:cmd-key evt-map)
         alt (:alt-key evt-map)
-        key-code (:key-code evt-map)]
+        key-code (:key-code evt-map)
+        args {:root-ratom  root-ratom
+              :evt         evt
+              :topic-ratom topic-ratom
+              :span-id     span-id}]
     ;(println "evt-map: " evt-map)
     (cond
       (and (= the-key "Enter")
-           shift) (insert-new-headline-above
-                    root-ratom evt topic-ratom span-id)
-      (= the-key "Enter") (insert-new-headline-below
-                            root-ratom evt topic-ratom span-id)
-      (= the-key "Delete") (delete-one-character-forward
-                             root-ratom evt topic-ratom span-id)
-      (= the-key "Backspace") (delete-one-character-backward
-                                root-ratom evt topic-ratom span-id)
-      (and (= the-key "Tab")
-           shift) (outdent root-ratom evt
-                           topic-ratom span-id)
-      (= the-key "Tab") (indent root-ratom evt topic-ratom span-id)
-      (and (= the-key "ArrowUp")
-           alt cmd) (move-headline-up root-ratom evt topic-ratom span-id)
-      (and (= the-key "ArrowDown")
-           alt cmd) (move-headline-down root-ratom evt topic-ratom span-id)
-      (= the-key "ArrowUp") (move-focus-up-one-line
-                              root-ratom evt topic-ratom span-id)
-      (= the-key "ArrowDown") (move-focus-down-one-line
-                                root-ratom evt topic-ratom span-id)
+           shift) (insert-new-headline-above args)
+      (= the-key "Enter") (insert-new-headline-below args)
+      ;root-ratom evt topic-ratom span-id)
+      (= the-key "Delete") (delete-one-character-forward args)
+      (= the-key "Backspace") (delete-one-character-backward args)
+      (and (= the-key "Tab") shift) (outdent args)
+      (= the-key "Tab") (indent args)
+      (and (= the-key "ArrowUp") alt cmd) (move-headline-up args)
+      (and (= the-key "ArrowDown") alt cmd) (move-headline-down args)
+      (= the-key "ArrowUp") (move-focus-up-one-line args)
+      (= the-key "ArrowDown") (move-focus-down-one-line args)
       ;; alt-cmd-,
-      (and (= key-code 188)
-           alt cmd) (toggle-headline-expansion
-                      root-ratom evt topic-ratom span-id)
+      (and (= key-code 188) alt cmd) (toggle-headline-expansion args)
       :default nil)))
 
 ;;;-----------------------------------------------------------------------------
@@ -972,11 +968,12 @@
         invisible-chevron-props {:class "tree-control--chevron-div"
                                  :id    chevron-id
                                  :style {:opacity "0.0"}}
+        ;hand-glass (str \uF09F \u948D)
         es (cond
              (has-visible-children? @subtree-ratom) [:div clickable-chevron-props
                                                      (str \u25BC \space)]
              (:children @subtree-ratom) [:div clickable-chevron-props
-                                         (str \u25BA \space)]
+                                         (str \u25BA \space)] ;\u25BA \space)]
              ; No children, so no chevron is displayed.
              ; This stuff is to ensure consistent horizontal spacing
              ; even though no expansion chevron is visible.
