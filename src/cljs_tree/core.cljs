@@ -442,6 +442,9 @@
       (swap! my-cursor update :expanded not))))
 
 (defn highlight-and-scroll-editor-for-id
+  "Focus the editor associated with the id (assumes that the label associated
+  with the id is visible). If needed scroll the editor into view. Select
+  the region represented by begin-highlight and end-highlight."
   [tree-id begin-highlight end-highlight]
   (when tree-id
     (let [editor-id (change-tree-id-type tree-id "editor")
