@@ -758,7 +758,7 @@
           (focus-and-scroll-editor-for-id demoted-id caret-position))))))
 
 (defn outdent
-  "outdent the current headline one level."
+  "Outdent the current headline one level."
   [{:keys [root-ratom evt span-id]}]
   (.preventDefault evt)
   (let [editor-id (change-tree-id-type span-id "editor")
@@ -769,7 +769,7 @@
           (focus-and-scroll-editor-for-id promoted-id caret-position))))))
 
 (defn move-headline-up
-  "Move the current headline up one level in its group of siblings."
+  "Move the current headline up one position in its group of siblings."
   [{:keys [root-ratom evt span-id]}]
   (.preventDefault evt)
   (let [siblings-above (siblings-above root-ratom span-id)]
@@ -782,7 +782,7 @@
         (focus-and-scroll-editor-for-id new-editor-id caret-position)))))
 
 (defn move-headline-down
-  "Move the current headline down one level in its group of siblings."
+  "Move the current headline down one position in its group of siblings."
   [{:keys [root-ratom evt span-id]}]
   (.preventDefault evt)
   (let [siblings-below (siblings-below root-ratom span-id)]
@@ -795,8 +795,7 @@
         (focus-and-scroll-editor-for-id new-editor-id caret-position)))))
 
 (defn move-focus-up-one-line
-  "Respond to an up arrow key-down event my moving the editor and focus to
-  the next higher up visible headline."
+  "Move the editor and focus to the next higher up visible headline."
   [{:keys [root-ratom evt span-id]}]
   (.preventDefault evt)
   (when-not (is-top-visible-tree-id? root-ratom span-id)
@@ -806,8 +805,7 @@
       (focus-and-scroll-editor-for-id previous-visible-topic saved-caret-position))))
 
 (defn move-focus-down-one-line
-  "Respond to a down arrow key-down event by moving the editor and focus to
-  the next lower down visible headline."
+  "Move the editor and focus to the next lower down visible headline."
   [{:keys [root-ratom evt span-id]}]
   (.preventDefault evt)
   (when-not (is-bottom-visible-tree-id? root-ratom span-id)
@@ -817,8 +815,9 @@
       (focus-and-scroll-editor-for-id next-visible-topic saved-caret-position))))
 
 (defn insert-new-headline-below
-  "Handle a key-down event for the Enter/Return key. Insert a new headline
-  in the tree and focus it, ready for editing."
+  "Insert a new headline in the tree above the currently focused one and leave
+   the placeholder text highlighted ready to be overwritten when the user
+   starts typing."
   [{:keys [root-ratom evt span-id]}]
   ; If the topic span has children, add a new child in the zero-position
   ; Else add a new sibling below the current topic
@@ -834,7 +833,8 @@
 
 (defn insert-new-headline-above
   "Insert a new headline above the current headline, pushing the current
-  headline down."
+  headline down. Leave the new topic placeholder text highlighted ready to
+  be overwritten when the user starts typing."
   [{:keys [root-ratom evt span-id]}]
   (.preventDefault evt)
   (let [new-headline (new-topic)
@@ -849,14 +849,14 @@
   (.preventDefault evt)
   (toggle-node-expansion! root-ratom span-id))
 
-(defonce default-mods {:ctrl false :alt false :shift false :cmd false})
-
 (defn- merge-def-mods
+  "Merge a map of modifiers (containing any modifiers which should be present)
+  with a default map of false values for all modifiers."
   [m]
-  (merge default-mods m))
+  (merge {:ctrl false :alt false :shift false :cmd false} m))
 
 (defn handle-key-down
-  "Detect key-down events and dispatch them to the appropriate handlers."
+  "Handle key-down events and dispatch them to the appropriate handlers."
   [root-ratom evt topic-ratom span-id]
   (let [km (key-evt->map evt)
         args {:root-ratom  root-ratom
@@ -865,6 +865,7 @@
               :span-id     span-id}]
     ;(println "km: " km)
     (cond
+
       (= km {:key "Enter" :modifiers (merge-def-mods {:shift true})})
       (insert-new-headline-above args)
 
