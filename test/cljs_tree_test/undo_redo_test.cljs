@@ -34,7 +34,7 @@
       (reset! atom-to-track second-state)
       (reset! atom-to-track third-state)
       ;; See if we can restore the second state.
-      (let [retrieved-state (ur/undo um)]
+      (let [retrieved-state (ur/undo! um)]
         (is (= second-state retrieved-state))
         ;; Make sure that the atom we are tracking has, in fact, been restored.
         (is (= second-state @atom-to-track))
@@ -43,7 +43,7 @@
         (is (= 2 (ur/num-undos um)))
         (is (= 1 (ur/num-redos um))))
       ;; See if we can restore the initial state.
-      (let [retrieved-state (ur/undo um)]
+      (let [retrieved-state (ur/undo! um)]
         (is (= first-state retrieved-state))
         ;; Make sure that the atom we are tracking has, in fact, been restored.
         (is (= first-state @atom-to-track))
@@ -63,7 +63,7 @@
       (reset! atom-to-track second-state)
       (reset! atom-to-track third-state)
       ;; See if we can restore the second state.
-      (let [retrieved-state (ur/undo um)]
+      (let [retrieved-state (ur/undo! um)]
         (is (= second-state retrieved-state))
         ;; Make sure that the atom we are tracking has, in fact, been restored.
         (is (= second-state @atom-to-track))
@@ -71,8 +71,8 @@
         (is (true? (ur/can-redo? um)))
         (is (= 2 (ur/num-undos um)))
         (is (= 1 (ur/num-redos um))))
-      ;; See if we can redo the third state.
-      (let [retrieved-state (ur/redo um)]
+      ;; See if we can redo! the third state.
+      (let [retrieved-state (ur/redo! um)]
         (is (= third-state retrieved-state))
         ;; Make sure that the atom we are tracking has, in fact, been restored.
         (is (= third-state @atom-to-track))
@@ -88,11 +88,11 @@
           second-state "the second state"
           third-state "and a third state"
           um (ur/undo-manager atom-to-track)]
-      (ur/pause-tracking um)
+      (ur/pause-tracking! um)
       (reset! atom-to-track second-state)
-      (ur/resume-tracking um)
+      (ur/resume-tracking! um)
       (reset! atom-to-track third-state)
-      (let [retrieved-state (ur/undo um)]
+      (let [retrieved-state (ur/undo! um)]
         (is (= first-state retrieved-state))
         (is (false? (ur/can-undo? um)))
         (is (true? (ur/can-redo? um)))
@@ -106,10 +106,10 @@
           second-state "the second state"
           third-state "and a third state"
           um (ur/undo-manager atom-to-track)]
-      (ur/stop-tracking um)
+      (ur/stop-tracking! um)
       (reset! atom-to-track second-state)
       (reset! atom-to-track third-state)
-      (let [retrieved-state (ur/undo um)]
+      (let [retrieved-state (ur/undo! um)]
         (is (nil? retrieved-state))
         (is (false? (ur/can-undo? um)))
         (is (false? (ur/can-redo? um)))

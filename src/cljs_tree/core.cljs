@@ -7,6 +7,7 @@
   (:require
     [cljs.pprint :as ppr]
     [cljs-tree.demo-hierarchy :as h]
+    [cljs-tree.undo-redo :as ur]
     [cljs-tree.vector-utils :refer [delete-at remove-first remove-last
                                     remove-last-two insert-at replace-at
                                     append-element-to-vector]]
@@ -1092,21 +1093,40 @@
       (into [:div.tree-control--list]
             (map #(outliner-row-div root-ratom %) nav-vectors)))))
 
+(defn handle-keydown-for-tree-container
+  "Handle undo/redo! for the tree container."
+  [evt um]
+  (let [km (key-evt->map evt)]
+    (cond
+      (= km {:key "z" :modifiers (merge-def-mods {:cmd true})})
+      (do
+        (.preventDefault evt)
+        (ur/undo! um))
+
+      (= km {:key "z" :modifiers (merge-def-mods {:cmd true :shift true})})
+      (do
+        (.preventDefault evt)
+        (ur/redo! um))
+
+      :default nil)))
+
 (defn home
   "Return a function to layout the home (only) page."
   [app-state-atom]
-  (fn [app-state-ratom]
-    [:div.page
-     [:div.title-div
-      [:h1 "cljs-tree"]
-      [:h3 "Some experiments with hierarchical data."]]
-     [:div.tree-control
-      [:p.tree-control--description "Here is the result of "
-       [:code "tree->hiccup"] ":"]
-      [:div.tree-control--container-div
-       (let [root-ratom (r/cursor app-state-atom [:tree])]
-         [tree->hiccup root-ratom])]
-      [add-move-remove-rocks-play-text-button app-state-ratom]]]))
+  (let [um (ur/undo-manager app-state-atom)]
+    (fn [app-state-ratom]
+      [:div.page
+       [:div.title-div
+        [:h1 "cljs-tree"]
+        [:h3 "Some experiments with hierarchical data."]]
+       [:div.tree-control
+        [:p.tree-control--description "Here is the result of "
+         [:code "tree->hiccup"] ":"]
+        [:div.tree-control--container-div
+         {:onKeyDown #(handle-keydown-for-tree-container % um)}
+         (let [root-ratom (r/cursor app-state-atom [:tree])]
+           [tree->hiccup root-ratom])]
+        [add-move-remove-rocks-play-text-button app-state-ratom]]])))
 
 (defn start []
   (r/render-component [home h/test-hierarchy]
