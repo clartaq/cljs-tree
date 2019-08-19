@@ -6,6 +6,10 @@ An experiment with hierarchical data in ClojureScript.
 
 `cljs-tree` is a small experiment in how to use a hierarchical data structure in ClojureScript. It implements a simple outliner/tree control. When run, the program will display a small sample outline in your default browser. (I've tested with Safari, Firefox, Opera and Brave, all on a Mac.) The outline is fully editable. The commands accepted by the outliner are described below. This demo does not support saving changes or exporting the modified outline. (The additional work to do so would move it beyond the "experimental" stage.)
 
+## Why
+
+The intent is to use a descendant of this control as an organizational and search tool on a personal wiki. The user should be able to layout the way they think their data is organized in the tree control. The plan is that at some point, they could then click in the gutter (not yet present) along a certain path in the tree and a search would be run based on the path to the node clicked. E.g. a click next to the node "Books/Authors/Kurt Vonnegut Jr." would bring up any information in the wiki about books that Kurt Vonnegut has written. That's in the far future. What will probably happen next is that special leaf nodes will be added for simpler types of searches.
+
 ## Setup
 
 You must have a version of Java 1.8 or later on your system. The example program does not run in Java, but the build tooling does.
@@ -87,6 +91,8 @@ When the page is initially loaded, it will show an outline with some subtopics e
 
 Once satisfied that the rock data manipulation works, start adding to, modifying, and removing the outline. You can always restore the outline to its original state by reloading the page.
 
+When you focus a topic, you can edit it -- the editing area is just a plain old HTML `textarea`. Any keyboard shortcuts that your browser supports can be used, with the exceptions listed below. For example, there is no special "delete-line-contents" shortcut since `Cmd-Backspace` does that, at least on macOS.
+
 ### Available Commands
 
 - **Select a Headline for Editing**: To edit a headline, just click on it and make your changes. Headlines may be any length. The headline will wrap as needed to accomodate long headlines.
@@ -110,7 +116,6 @@ Once satisfied that the rock data manipulation works, start adding to, modifying
     You can only change the order of siblings this way, but when used with the Indent and Outdent functions, you can completely reorganize the outline.
 
 - **Expand/Collapse Branches**: If a headline has a chevron next to it, you can toggle expanding or collapsing the branch by clicking the chevron.
-
 - **Deleting Characters**: Pressing the "Delete" key will delete characters in front of the caret (towards the end of the outline.) Pressing the "Backspace" key will delete characters behind the caret (towards the beginning of the outline.)
 
     Completely deleting a headline will also delete any sub-headings it may have had.
@@ -128,6 +133,13 @@ Some technical documentation, including a description of the tree data structure
 ## To Do
 
 - Allow deletion of entire headlines at once.
+- Add line split/join actions.
+- Move the "Rocks" exercise to a test file.
+- Maybe add a little formatting like bold and italic.
+- Fix "flash" when promoting "Books" headline (but not others.)
+- Branch rearrangement with drag and drop.
+- Component-global undo/redo, not just the default behavior for individual `textarea`s.
+- Improve CSS such that especially long topics look like paragraphs.
 
 ## License
 
