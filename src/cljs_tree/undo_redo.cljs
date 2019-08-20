@@ -1,5 +1,4 @@
-(ns cljs-tree.undo-redo
-  (:require [cljs-tree.stack :as s]))
+(ns cljs-tree.undo-redo)
 
 (enable-console-print!)
 
