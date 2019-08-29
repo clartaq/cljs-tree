@@ -32,7 +32,7 @@
 
   (can-undo? [this] (> (num-undos this) 1))
 
-  (can-redo? [this] (> (num-redos this) 0))
+  (can-redo? [this] (pos? (num-redos this)))
 
   (undo! [this]
     (when (can-undo? this)
