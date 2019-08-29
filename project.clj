@@ -1,6 +1,6 @@
 (defproject cljs-tree "0.1.0-SNAPSHOT"
   :description "An experiment with an hierarchical data structure."
-  :url "https://bitbucket.org/David_Clark/cljs-tree"
+  :url "https://helixteamhub.cloud/Regolith/projects/binom-stats/repositories/cljs-tree/tree/default"
   :license {:name "Eclipse Public License"
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
 
