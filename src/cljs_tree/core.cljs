@@ -11,6 +11,7 @@
     [cljs-tree.vector-utils :refer [delete-at remove-first remove-last
                                     remove-last-two insert-at replace-at
                                     append-element-to-vector]]
+    [clojure.edn :as edn]
     [clojure.string :as s]
     [reagent.core :as r]))
 
@@ -40,7 +41,12 @@
 (defn new-topic
   "Return the map to be used for a new topic."
   []
-  {:topic "Type new content here"})
+  {:topic "Something new"})
+
+(defn empty-new-topic
+  "Return the map for a new topic with no content."
+  []
+  {:topic "\u200D"})
 
 ;;;-----------------------------------------------------------------------------
 ;;; Utilities
@@ -118,6 +124,19 @@
   "Swap the display style properties for the two elements."
   [first-id second-id]
   (swap-style-property first-id second-id "display"))
+
+(defn resize-textarea
+  "Resize the element vertically."
+  [text-id]
+  ;(println "resize-textarea: text-id: " text-id)
+  ;(println "    (get-element-by-id text-id): " (get-element-by-id text-id))
+  (when-let [ele (get-element-by-id text-id)]
+    ; (println "    ele: " ele)
+    (let [style (.-style ele)]
+      (set! (.-overflow style) "hidden")
+      (set! (.-height style) "5px")
+      ;  (println "    (.-scrollHeight ele): " (.-scrollHeight ele))
+      (set! (.-height style) (str (.-scrollHeight ele) "px")))))
 
 (defn unpack-keyboard-event
   "Unpack all of the information in a keyboard event and return a map
@@ -903,71 +922,90 @@
 
       :default nil)))
 
-;;;-----------------------------------------------------------------------------
-;;; Some data and functions to cycle through adding, moving, moving again and
-;;; then deleting a child branch.
+(defn add-reset-button
+  "Return a function that will create a button that, when clicked, will undo
+  all changes made to the tree since the program was started."
+  [app-state-ratom]
+  (let [button-id "reset-button"
+        reset-fn (fn [_]
+                   (let [um (:undo-redo-manager @app-state-ratom)]
+                     (while (ur/can-undo? um)
+                       (ur/undo! um))))]
+    (fn [app-state-ratom]
+      [:input.tree-control--button
+       {:type     "button"
+        :id       button-id
+        :title    "Reset the tree to its original state"
+        :value    "Reset"
+        :on-click #(reset-fn %)}])))
 
-(def add-rock-dest-id (tree-id-parts->tree-id-string ["root" 1 1 2 "topic"]))
+(defn add-new-button
+  "Return a function that will produce a button that, when clicked,
+  will delete the current contents of the control and replace it with a
+  fresh, empty version."
+  [app-state-ratom]
+  (let [button-id "new-button"
+        my-cursor (r/cursor app-state-ratom [:tree])
+        empty-tree [(new-topic)]
+        empty-tree-id (tree-id-parts->tree-id-string (conj (root-parts) "editor"))
+        new-fn (fn [_]
+                 (reset! my-cursor empty-tree)
+                 (r/after-render
+                   (fn []
+                     (resize-textarea empty-tree-id)
+                     (highlight-and-scroll-editor-for-id
+                       empty-tree-id 0
+                       (count (:topic (first @my-cursor)))))))]
+    (fn [app-state-ratom]
+      [:input.tree-control--button
+       {:type     "button"
+        :id       button-id
+        :title    "Remove all contents from the tree control and start anew"
+        :value    "New"
+        :on-click #(new-fn %)}])))
 
-(def mov-rock-dest-id (tree-id-parts->tree-id-string ["root" 1 0 "topic"]))
+(defn add-save-button
+  "Return a fuction that will produce a button that, when clicked,
+  will save the current state of the tree in local storage."
+  [app-state-ratom]
+  (let [button-id "save-button"
+        save-fn (fn [_] (.setItem (.-localStorage js/window) "tree"
+                                  (pr-str (:tree @app-state-ratom))))]
+    (fn [app-state-ratom]
+      [:input.tree-control--button
+       {:type     "button"
+        :id       button-id
+        :title    "Save the current state of the tree"
+        :value    "Save"
+        :on-click #(save-fn %)}])))
 
-(def fnl-rock-dest-id (tree-id-parts->tree-id-string ["root" 2 0 1 1 "topic"]))
+(defn add-read-button
+  "Return a fuction that will produce a button that, when clicked,
+  will read the saved state of the tree in local storage."
+  [app-state-ratom]
+  (let [button-id "read-button"
+        read-fn (fn [_]
+                  (when-let [data (.getItem (.-localStorage js/window) "tree")]
+                    (let [edn (edn/read-string data)]
+                      (swap! app-state-ratom assoc :tree edn))))]
+    (fn [app-state-ratom]
+      [:input.tree-control--button
+       {:type     "button"
+        :id       button-id
+        :title    "Read the saved tree from storage"
+        :value    "Read"
+        :on-click #(read-fn %)}])))
 
-(defn add-rocks!
-  "Add some different stuff to the tree."
-  [root-ratom]
-  (let [new-info {:topic    "Rocks"
-                  :expanded true
-                  :children [{:topic "Igneous"}
-                             {:topic "Sedimentary"}
-                             {:topic "Metamorphic"}]}]
-    (graft-topic! root-ratom add-rock-dest-id new-info)
-    (scroll-ele-into-view add-rock-dest-id)))
-
-(defn move-rocks!
-  "Move the existing branch of rock data to a new location."
-  [root-ratom]
-  (move-branch! root-ratom add-rock-dest-id mov-rock-dest-id))
-
-(defn move-rocks-again!
-  [root-ratom]
-  (move-branch! root-ratom mov-rock-dest-id fnl-rock-dest-id))
-
-(defn remove-rocks!
-  "Remove rock information that was previously added to tree."
-  [root-ratom]
-  (prune-topic! root-ratom fnl-rock-dest-id))
-
-(defn add-move-remove-rocks-play-text-button
-  [root-ratom]
-  (fn [root-ratom]
-    (let [add-text "Click to Add Rock Data"
-          mov-text "Click to Move Rock Data"
-          agn-text "Click to Move Rock Data Again"
-          del-text "Click to Remove Rock Data"
-          button-id "add-remove-rock-button-id"
-          my-cursor (r/cursor root-ratom [:tree])]
-      [:div.tree-control--button-area
-       [:input.tree-control--button
-        {:type     "button"
-         :id       button-id
-         :value    add-text
-         :on-click (fn [evt]
-                     (let [txt (get-value-by-id button-id)]
-                       (cond
-                         (= txt add-text) (do
-                                            (add-rocks! my-cursor)
-                                            (set-value-by-id! button-id mov-text))
-                         (= txt mov-text) (do
-                                            (move-rocks! my-cursor)
-                                            (set-value-by-id! button-id agn-text))
-                         (= txt agn-text) (do
-                                            (move-rocks-again! my-cursor)
-                                            (set-value-by-id! button-id del-text))
-                         (= txt del-text) (do
-                                            (remove-rocks! my-cursor)
-                                            (set-value-by-id! button-id add-text))
-                         :default (println "Aaak... Unexpected condition"))))}]])))
+(defn add-buttons
+  "Adds buttons to the button bar."
+  [app-state-ratom]
+  (fn [app-state-ratom]
+    [:div.tree-control--button-area
+     ;[add-move-remove-rocks-play-text-button app-state-ratom]
+     [add-reset-button app-state-ratom]
+     [add-new-button app-state-ratom]
+     [add-save-button app-state-ratom]
+     [add-read-button app-state-ratom]]))
 
 ;;;-----------------------------------------------------------------------------
 ;;; Functions to build the control.
@@ -1010,15 +1048,6 @@
              ; even though no expansion chevron is visible.
              :default [:div invisible-chevron-props (str \u2022 \space)])]
     es))
-
-(defn resize-textarea
-  "Resize the element vertically."
-  [text-id]
-  (when-let [ele (get-element-by-id text-id)]
-    (let [style (.-style ele)]
-      (set! (.-overflow style) "hidden")
-      (set! (.-height style) "5px")
-      (set! (.-height style) (str (.-scrollHeight ele) "px")))))
 
 (defn topic-info-div
   "Build the textual/interactive part of a topic/headline."
@@ -1112,8 +1141,13 @@
 
 (defn home
   "Return a function to layout the home (only) page."
-  [app-state-atom]
-  (let [um (ur/undo-manager app-state-atom)]
+  [app-state-ratom]
+  (let [root-ratom (r/cursor app-state-ratom [:tree])
+        um (ur/undo-manager root-ratom)]
+    (swap! app-state-ratom assoc :undo-redo-manager um)
+    ;;!!!!!!!!!!! JUST FOR TESTING
+    ;(.clear (.-localStorage js/window))
+    ;;!!!!!!!!!! JUST FOR TESTING
     (fn [app-state-ratom]
       [:div.page
        [:div.title-div
@@ -1124,9 +1158,9 @@
          [:code "tree->hiccup"] ":"]
         [:div.tree-control--container-div
          {:onKeyDown #(handle-keydown-for-tree-container % um)}
-         (let [root-ratom (r/cursor app-state-atom [:tree])]
-           [tree->hiccup root-ratom])]
-        [add-move-remove-rocks-play-text-button app-state-ratom]]])))
+         [tree->hiccup root-ratom]]
+        [add-buttons app-state-ratom]]])))
+;[add-move-remove-rocks-play-text-button app-state-ratom]]])))
 
 (defn start []
   (r/render-component [home h/test-hierarchy]
