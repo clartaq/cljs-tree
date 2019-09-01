@@ -278,6 +278,8 @@ p {
     line-height: 1.688rem;
     overflow: hidden;
     padding: 0.2rem 0.875rem 0 0.875rem;
+    margin-left: 0.2rem;
+    margin-right: 0.2rem;
     position: relative;
     text-decoration: none;
     text-overflow: ellipsis;
@@ -358,6 +360,9 @@ p {
 
 .tree-control--topic-label {
     flex: 1;
+    line-height: 1.3rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
     padding-left: 0.25rem;
     background-color: lightgoldenrodyellow;
 }
@@ -366,12 +371,11 @@ p {
     flex: 1;
     font-family: var(--body-font-family);
     font-size: 1rem;
-    line-height: 1.5rem;
+    line-height: 1.3rem;
     height: 100%;
 
-    margin: 0;
-    padding: 0;
-    padding-left: 0.25rem;
+    margin: 0.25rem 0;
+    padding: 0 0 0 0.25rem;
 
     border: none;
     outline: none;
