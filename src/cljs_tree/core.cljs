@@ -1042,20 +1042,21 @@
   a result based on whether the tree has children, and if so, whether they
   are expanded or not."
   [root-ratom subtree-ratom chevron-id]
-  (let [base-attrs {:class "tree-control--chevron-div"
+  (let [want-bullets true
+        bullet-opacity (if want-bullets "0.7" "0.0")
+        base-attrs {:class "tree-control--chevron-div"
                     :id    chevron-id}
         clickable-chevron-props (merge base-attrs
                                        {:on-click #(handle-chevron-click! root-ratom %)})
-        invisible-chevron-props (merge base-attrs {:style {:opacity "0.0"}})
+        invisible-chevron-props (merge base-attrs {:style {:opacity bullet-opacity}})
         es (cond
              (has-visible-children? @subtree-ratom) [:div clickable-chevron-props
                                                      (str \u25BC \space)]
              (:children @subtree-ratom) [:div clickable-chevron-props
                                          (str \u25BA \space)]
-             ; No children, so no chevron is displayed.
-             ; This stuff is to ensure consistent horizontal spacing
-             ; even though no expansion chevron is visible.
-             :default [:div invisible-chevron-props (str \u2022 \space)])]
+             ; Headlines with no children can be displayed with or without
+             ; a bullet depending on the setting of "want-bullets" above.
+             :default [:div invisible-chevron-props (str \u25cf \space)])]
     es))
 
 (defn topic-info-div
