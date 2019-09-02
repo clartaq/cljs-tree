@@ -32,7 +32,10 @@
                                                      :expanded true
                                                      :children [{:topic    "Biography"
                                                                  :expanded nil
-                                                                 :children [{:topic "He was born a long time ago in some dusty, poor Southern town that is no longer there."}
+                                                                 :children [{:topic "He was born a long time ago in some dusty, poor Southern town that is no longer there."
+                                                                             :expanded nil
+                                                                             :children [{:topic "Some say a big hurricane blew the town away."}
+                                                                                        {:topic "Others say the town just slowly faded away from apathy along with all the people in it."}]}
                                                                             {:topic "His dad was an itinerant tinkerer, specializing in the repair of 15th century tea pots."}
                                                                             {:topic "His mom was a laundress who believed in the purifying power of plain ol' dirt. Her customers were not as fond of it, especially on their laundered clothes."}
                                                                             {:topic "As a result of these career choices, the family remained very poor."}]}
