@@ -226,7 +226,7 @@ p {
     box-sizing: border-box;
     overflow: hidden;
 
-    background-color: lavender;
+    /*background-color: lavender;*/
 }
 
 /*.tree-demo--description {*/
@@ -305,14 +305,14 @@ p {
     overflow: auto;
     box-sizing: border-box;
 
-    background-color: blanchedalmond;
+    /*background-color: blanchedalmond;*/
 }
 
 .tree-control--list {
     display: flex;
     flex-direction: column;
 
-    background-color: lightgrey;
+    /*background-color: lightgrey;*/
 }
 
 .tree-control--row-div {
@@ -320,7 +320,7 @@ p {
 }
 
 .tree-control--indent-div {
-    background-color: antiquewhite;
+    /*background-color: antiquewhite;*/
 }
 
 .tree-control--chevron-div {
@@ -335,7 +335,7 @@ p {
     opacity: 0.9;
     transition: opacity 0.3s, font-size 0.3s, color 0.3s ease-in-out;
 
-    background-color: lightcyan;
+    /*background-color: lightcyan;*/
 }
 
 .tree-control--chevron-div:hover {
@@ -357,7 +357,7 @@ p {
     margin-top: 0.25rem;
     margin-bottom: 0.25rem;
     padding-left: 0.25rem;
-    background-color: lightgoldenrodyellow;
+    /*background-color: lightgoldenrodyellow;*/
 }
 
 .tree-control--topic-editor {
