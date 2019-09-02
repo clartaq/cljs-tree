@@ -913,6 +913,26 @@
 
       :default nil)))
 
+(defn handle-keydown-for-tree-container
+  "Handle undo/redo! for the tree container."
+  [evt um]
+  (let [km (key-evt->map evt)]
+    (cond
+      (= km {:key "z" :modifiers (merge-def-mods {:cmd true})})
+      (do
+        (.preventDefault evt)
+        (ur/undo! um))
+
+      (= km {:key "z" :modifiers (merge-def-mods {:cmd true :shift true})})
+      (do
+        (.preventDefault evt)
+        (ur/redo! um))
+
+      :default nil)))
+
+;;;-----------------------------------------------------------------------------
+;;; Buttons for the demo.
+
 (defn add-reset-button
   "Return a function that will create a button that, when clicked, will undo
   all changes made to the tree since the program was started."
@@ -1110,23 +1130,6 @@
     (let [nav-vectors (visible-nodes @root-ratom ["root"])]
       (into [:div.tree-control--list]
             (map #(outliner-row-div root-ratom %) nav-vectors)))))
-
-(defn handle-keydown-for-tree-container
-  "Handle undo/redo! for the tree container."
-  [evt um]
-  (let [km (key-evt->map evt)]
-    (cond
-      (= km {:key "z" :modifiers (merge-def-mods {:cmd true})})
-      (do
-        (.preventDefault evt)
-        (ur/undo! um))
-
-      (= km {:key "z" :modifiers (merge-def-mods {:cmd true :shift true})})
-      (do
-        (.preventDefault evt)
-        (ur/redo! um))
-
-      :default nil)))
 
 (defn home
   "Return a function to layout the home (only) page."
