@@ -4,7 +4,7 @@ An experiment with hierarchical data in ClojureScript.
 
 ## Overview
 
-`cljs-tree` is a small experiment in how to use a hierarchical data structure in ClojureScript. It implements a simple outliner/tree control. When run, the program will display a small sample outline in your default browser. (I've tested with Safari, Firefox, Opera and Brave, all on a Mac.) The outline is fully editable. The commands accepted by the outliner are described below. This demo does not support saving changes or exporting the modified outline. (The additional work to do so would move it beyond the "experimental" stage.)
+`cljs-tree` is a small experiment in how to use a hierarchical data structure in ClojureScript. It implements a simple outliner/tree control. When run, the program will display a sample outline in your default browser. (I've tested with Safari, Firefox, Opera and Brave, all on a Mac.) The outline is fully editable. The commands accepted by the outliner are described below. This demo does not support saving changes or exporting the modified outline. (The additional work to do so would move it beyond the "experimental" stage.)
 
 ## Why
 
@@ -57,7 +57,7 @@ and you should see an alert in the browser window.
 
 Any changes you make to functionality in the REPL or by making changes to a source file will be reflected (nearly) instantaneously in the browser window.
 
-Running this setup also will start running integration tests automatically. To check the status of integration tests, open a browser tab to 
+Running this setup also will start running unit tests automatically. To check the status of integration tests, open a browser tab to 
 `http://localhost:9500/figwheel-extra-main/auto-testing`.
 
 ## Build and Run a "Production" Version
@@ -87,25 +87,25 @@ The test results will appear in the console.
 
 This demo lets you manipulate a small sample outline. (Please forgive any odd coloring of the demo. I sometimes use altered CSS to help me see exactly how certain HTML elements are arranged in the demo.)
 
-When the page is initially loaded, it will show an outline with some subtopics expanded while other are collapsed. There is a button at the bottom of the page that will add, move, and remove a sub-tree of additional data. Try that first.
-
-Once satisfied that the rock data manipulation works, start adding to, modifying, and removing the outline. You can always restore the outline to its original state by reloading the page.
+When the page is initially loaded, it will show an outline with some subtopics expanded while other are collapsed. There are buttons at the bottom that demonstrate some more complicated functionality
 
 When you focus a topic, you can edit it -- the editing area is just a plain old HTML `textarea`. Any keyboard shortcuts that your browser supports can be used, with the exceptions listed below. For example, there is no special "delete-line-contents" shortcut since `Cmd-Backspace` does that, at least on macOS.
 
-### Available Commands
+You can always restore the outline to its original state by reloading the page.
+
+### Available Actions
 
 - **Select a Headline for Editing**: To edit a headline, just click on it and make your changes. Headlines may be any length. The headline will wrap as needed to accomodate long headlines.
 - **Moving Up and Down**: Use the up arrow and down arrow keys to move the editing focus up and down the outline. Moving to a collapsed headline will leave it in a collapsed state. Likewise, moving to a headline that is already expanded will not change the expansion state.
-- **Adding a New Headline**: To add a new headline below an existing one, click any existing headline and press `Return`. A new headline will be inserted below the current headline and the editing focus will be move to the new headline.
+- **Adding a New Headline**: To add a new headline below an existing one, click any existing headline and press `Return`. A new headline will be inserted below the current headline and the editing focus will be moved to the new headline.
 
-    If the existing headline already has sub-headlines, the new headline will also appear as a sub-headling. If the existing headline does not have any sub-headings, the new headline will be created as a "sibling" of the existing headline.
+    If the existing headline already has sub-headlines, the new headline will also appear as a sub-headling. If the existing headline does not have any sub-headings, the new headline will be created as a "sibling" of the existing headline, that is, at the same level of indentation.
     
     You can add a new headline _above_ the current headline by pressing `Shift-Return` instead.
 
-    In both cases, the inserted placeholder text will be highlighted, ready to overwrite by typing.
+    In both cases, the inserted headline will be empty and show a blinking cursor ready to accept typing.
 
-- **Promoting/Outdenting and Demoting/Indenting Headlines**: An existing headline can be indented by pressing the `Tab` key. A headline can be outdented by holding down the `Shift` key then pressing the `Tab` key.
+- **Promoting/Outdenting and Demoting/Indenting Headlines**: An existing headline can be indented by pressing the `Tab` key while the headline is selected for editing. A headline can be outdented by holding down the `Shift` key then pressing the `Tab` key.
 
     Headlines can only be indented one level below their parent headline. They can, of course, have additional sub-headlines that are further indented.
 
@@ -113,18 +113,38 @@ When you focus a topic, you can edit it -- the editing area is just a plain old 
 
 - **Moving Headlines Up or Down**: You can move a headline up or down among its siblings using `Option-Command-UpArrow` and `Option-Command-DownArrow`, respectively.
 
-    You can only change the order of siblings this way, but when used with the Indent and Outdent functions, you can completely reorganize the outline.
+    You can only change the order of *siblings* this way, but when used with the Indent and Outdent functions, you can completely reorganize the outline.
 
-- **Expand/Collapse Branches**: If a headline has a chevron next to it, you can toggle expanding or collapsing the branch by clicking the chevron.
+- **Expand/Collapse Branches**: If a headline has a chevron next to it, you can toggle expanding or collapsing the branch by clicking the chevron. The keyboard shortcut `opt-cmd-,` will also toggle the expansion state
 - **Deleting Characters**: Pressing the "Delete" key will delete characters in front of the caret (towards the end of the outline.) Pressing the "Backspace" key will delete characters behind the caret (towards the beginning of the outline.)
 
     Completely deleting a headline will also delete any sub-headings it may have had.
 
     The entire outline can be deleted by placing the editing caret before the first character in the top-most headline and repeatedly pressing the "Delete" key.
 
-    Likewise, placing the caret at the end of the last visible headline and repreatedly pressing the backspace key can erase the entire outline one character at a time.
+    Likewise, placing the caret at the end of the last visible headline and repeatedly pressing the backspace key can erase the entire outline one character at a time.
 
     You cannot delete the last remaining headline. You can delete its contents but not the editing area of the headline.
+
+- **Undo/Redo**: The keyboard shortcuts `Cmd-z` and `Shift-Cmd-z` can be used to undo and redo changes to the tree. These commands work just like similar commands in other editors. But they can also undo/redo things like the expansion state of a headline, deletion of subtrees, _etc_.
+
+    However, the part of the program that handles undo/redo is a bit feeble in that it will not always show the location where the change was made -- it might be outside of the part of the tree control currently being viewed.
+
+    Likewise, the program may show you states of the tree that you never created yourself. This is because some operations, like moving subtrees, are done in multiple steps that you typically don't see. When you undo some actions, you will see the intermediate steps as well.
+
+**A Note on Keyboard Shortcuts**: It's a bit of a problem coming up with appropriate keyboard commands in and SPA like this that does editing. Some of the choices have effects on the accessibility of the app. In this implmentation, the shortcuts described above are only active when a headline in the tree is focused -- so be a little careful. For example, pressing the `Tab` key when no headline is focused is likely to have different effects. Likewise, `Cmd-z` and `ShiftCmd-z` will not activate undo/redo in the tree unless it is focused and may cause some jarring effects in the browser.
+
+### Buttons
+
+At the bottom of the tree, there are four buttons labeled "Reset", "New", "Save", and "Read."
+
+- **Reset**: Clicking "Reset" will reset the data to the value it had at the start of the session. This is usually (always?) the built-in sample outline.
+
+- **New**: Clicking the "New" button will delete the current contents of the tree and present the user with an empty tree to edit.
+
+- **Save**: Clicking the "Save" button will save the current state of the tree to [localStorage](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage). It will persist across browser sessions, but is limited in size.
+
+- **Read**: Clicking the "Read" button will read any data stored in `localStorage` and replace the contents of the tree with the data.
 
 ## Documentation
 
@@ -134,12 +154,11 @@ Some technical documentation, including a description of the tree data structure
 
 - Allow deletion of entire headlines at once.
 - Add line split/join actions.
-- Move the "Rocks" exercise to a test file.
 - Maybe add a little formatting like bold and italic.
-- Fix "flash" when promoting "Books" headline (but not others.)
 - Branch rearrangement with drag and drop.
-- Component-global undo/redo, not just the default behavior for individual `textarea`s.
-- Improve CSS such that especially long topics look like paragraphs.
+- Change undo/redo machinery to use the Command pattern rather than the Memento pattern.
+- Pause undo/redo when executing composite actions.
+- Make undo/redo a little more "chunky" based on periods of inactivity.
 
 ## License
 
