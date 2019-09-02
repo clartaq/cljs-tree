@@ -41,12 +41,7 @@
 (defn new-topic
   "Return the map to be used for a new topic."
   []
-  {:topic "Something new"})
-
-(defn empty-new-topic
-  "Return the map for a new topic with no content."
-  []
-  {:topic "\u200D"})
+  {:topic ""})
 
 ;;;-----------------------------------------------------------------------------
 ;;; Utilities
@@ -128,14 +123,10 @@
 (defn resize-textarea
   "Resize the element vertically."
   [text-id]
-  ;(println "resize-textarea: text-id: " text-id)
-  ;(println "    (get-element-by-id text-id): " (get-element-by-id text-id))
   (when-let [ele (get-element-by-id text-id)]
-    ; (println "    ele: " ele)
     (let [style (.-style ele)]
       (set! (.-overflow style) "hidden")
       (set! (.-height style) "5px")
-      ;  (println "    (.-scrollHeight ele): " (.-scrollHeight ele))
       (set! (.-height style) (str (.-scrollHeight ele) "px")))))
 
 (defn unpack-keyboard-event
@@ -932,7 +923,7 @@
                      (while (ur/can-undo? um)
                        (ur/undo! um))))]
     (fn [app-state-ratom]
-      [:input.tree-control--button
+      [:input.tree-demo--button
        {:type     "button"
         :id       button-id
         :title    "Reset the tree to its original state"
@@ -957,7 +948,7 @@
                        empty-tree-id 0
                        (count (:topic (first @my-cursor)))))))]
     (fn [app-state-ratom]
-      [:input.tree-control--button
+      [:input.tree-demo--button
        {:type     "button"
         :id       button-id
         :title    "Remove all contents from the tree control and start anew"
@@ -972,7 +963,7 @@
         save-fn (fn [_] (.setItem (.-localStorage js/window) "tree"
                                   (pr-str (:tree @app-state-ratom))))]
     (fn [app-state-ratom]
-      [:input.tree-control--button
+      [:input.tree-demo--button
        {:type     "button"
         :id       button-id
         :title    "Save the current state of the tree"
@@ -989,7 +980,7 @@
                     (let [edn (edn/read-string data)]
                       (swap! app-state-ratom assoc :tree edn))))]
     (fn [app-state-ratom]
-      [:input.tree-control--button
+      [:input.tree-demo--button
        {:type     "button"
         :id       button-id
         :title    "Read the saved tree from storage"
@@ -1000,8 +991,7 @@
   "Adds buttons to the button bar."
   [app-state-ratom]
   (fn [app-state-ratom]
-    [:div.tree-control--button-area
-     ;[add-move-remove-rocks-play-text-button app-state-ratom]
+    [:div.tree-demo--button-area
      [add-reset-button app-state-ratom]
      [add-new-button app-state-ratom]
      [add-save-button app-state-ratom]
@@ -1032,12 +1022,11 @@
   a result based on whether the tree has children, and if so, whether they
   are expanded or not."
   [root-ratom subtree-ratom chevron-id]
-  (let [clickable-chevron-props {:class    "tree-control--chevron-div"
-                                 :id       chevron-id
-                                 :on-click #(handle-chevron-click! root-ratom %)}
-        invisible-chevron-props {:class "tree-control--chevron-div"
-                                 :id    chevron-id
-                                 :style {:opacity "0.0"}}
+  (let [base-attrs {:class "tree-control--chevron-div"
+                    :id    chevron-id}
+        clickable-chevron-props (merge base-attrs
+                                       {:on-click #(handle-chevron-click! root-ratom %)})
+        invisible-chevron-props (merge base-attrs {:style {:opacity "0.0"}})
         es (cond
              (has-visible-children? @subtree-ratom) [:div clickable-chevron-props
                                                      (str \u25BC \space)]
@@ -1145,17 +1134,14 @@
   (let [root-ratom (r/cursor app-state-ratom [:tree])
         um (ur/undo-manager root-ratom)]
     (swap! app-state-ratom assoc :undo-redo-manager um)
-    ;;!!!!!!!!!!! JUST FOR TESTING
-    ;(.clear (.-localStorage js/window))
-    ;;!!!!!!!!!! JUST FOR TESTING
     (fn [app-state-ratom]
       [:div.page
        [:div.title-div
         [:h1 "cljs-tree"]
         [:h3 "Some experiments with hierarchical data."]]
-       [:div.tree-control
-        [:p.tree-control--description "Here is the result of "
-         [:code "tree->hiccup"] ":"]
+       [:div.tree-demo--container
+        ;[:p.tree-demo--description "Here is the result of "
+        ; [:code "tree->hiccup"] ":"]
         [:div.tree-control--container-div
          {:onKeyDown #(handle-keydown-for-tree-container % um)}
          [tree->hiccup root-ratom]]
