@@ -209,17 +209,10 @@ p {
     margin: 5px;
 }
 
-/* Styles used by all demos. */
+/* Styles used for the demo container. */
 
-.tree-control--container {
-    flex: 1 1 auto;
-    display: flex;
-    flex-direction: row;
-    overflow: hidden;
-    box-sizing: border-box;
-}
 
-.tree-control {
+.tree-demo--container {
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
@@ -236,21 +229,14 @@ p {
     background-color: lavender;
 }
 
-.tree-control--description {
-    padding-bottom: 1rem;
-    margin-bottom: 1rem;
-    border-bottom: 1px var(--rule-color) solid;
-    box-sizing: border-box;
-}
+/*.tree-demo--description {*/
+/*    padding-bottom: 1rem;*/
+/*    margin-bottom: 1rem;*/
+/*    border-bottom: 1px var(--rule-color) solid;*/
+/*    box-sizing: border-box;*/
+/*}*/
 
-.tree-control--container-div {
-    overflow: auto;
-    box-sizing: border-box;
-
-    background-color: blanchedalmond;
-}
-
-.tree-control--button-area {
+.tree-demo--button-area {
     flex: 0 0 auto;
     display: flex;
     flex-direction: row;
@@ -262,7 +248,7 @@ p {
     box-sizing: border-box;
 }
 
-.tree-control--button {
+.tree-demo--button {
     background-color: var(--form-button-background-color);
     border: 1px solid var(--active-border-color);
     border-radius: 4px;
@@ -289,23 +275,23 @@ p {
     white-space: nowrap;
 }
 
-.tree-control--button:hover {
+.tree-demo--button:hover {
     background-color: var(--form-button-hover-color);
 }
 
-.tree-control--button:focus {
+.tree-demo--button:focus {
     border: 1px solid var(--active-border-color);
     box-shadow: inset 0 1px rgba(255, 255, 255, 0.36), 0 0 0 2px var(--form-button-focus-box-shadow-color);
     outline: 0;
 }
 
-.tree-control--button:active {
+.tree-demo--button:active {
     border: 1px solid var(--active-border-color);
     background-color: var(--form-button-active-background-color);
     box-shadow: inset 0 1px var(--form-button-active-box-shadow-color);
 }
 
-.tree-control--button:disabled {
+.tree-demo--button:disabled {
     opacity: 0.3;
     cursor: default;
     pointer-events: none;
@@ -315,11 +301,18 @@ p {
 ** Stuff used in the actual tree control.
  */
 
+.tree-control--container-div {
+    overflow: auto;
+    box-sizing: border-box;
+
+    background-color: blanchedalmond;
+}
+
 .tree-control--list {
     display: flex;
     flex-direction: column;
 
-    background-color: gray;
+    background-color: lightgrey;
 }
 
 .tree-control--row-div {
@@ -342,7 +335,7 @@ p {
     opacity: 0.9;
     transition: opacity 0.3s, font-size 0.3s, color 0.3s ease-in-out;
 
-    background-color: lavender;
+    background-color: lightcyan;
 }
 
 .tree-control--chevron-div:hover {
