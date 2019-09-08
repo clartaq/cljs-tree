@@ -1,4 +1,6 @@
-(ns cljs-tree.undo-redo)
+(ns cljs-tree.undo-redo
+  ;(:require [cljs-tree.exploratory :as ex])
+  )
 
 (enable-console-print!)
 
@@ -82,6 +84,12 @@
                       ;(prn "old-state: " old-state)
                       ;(prn "new-state: " new-state)
                       ;(prn "paused: " @paused)
+                      ;(let [ae (.-activeElement js/document)]
+                      ;  (when (= "TEXTAREA" (.-tagName ae))
+                      ;    (let [sel-start (.-selectionStart ae)
+                      ;          sel-end (.-selectionEnd ae)]
+                      ;      (println "sel-start: " sel-start)
+                      ;      (println "sel-end: " sel-end))))
                       (when-not @paused
                         (reset! redo-stack [])
                         (reset! paused true)
