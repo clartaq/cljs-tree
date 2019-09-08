@@ -129,25 +129,6 @@
       (set! (.-height style) "5px")
       (set! (.-height style) (str (.-scrollHeight ele) "px")))))
 
-(defn unpack-keyboard-event
-  "Unpack all of the information in a keyboard event and return a map
-  of the contents."
-  [evt]
-  {:alt-key            (.-altKey evt)
-   :char-code          (.-charCode evt)
-   :cmd-key            (or (.-metaKey evt) (.-ctrlKey evt))
-   :code               (.-code evt)
-   :ctrl-key           (.-ctrlKey evt)
-   :get-modifier-state (.getModifierState evt)
-   :is-composing       (.-isComposing evt)
-   :key                (.-key evt)
-   :key-code           (.-keyCode evt)
-   :location           (.-location evt)
-   :meta-key           (.-metaKey evt)
-   :repeating?         (.-repeat evt)
-   :shift-key          (.-shiftKey evt)
-   :which              (.-which evt)})
-
 (defn key-evt->map
   "Unpack the information in a keyboard event into a map that can be used
   easily to dispatch the event to a handler"
