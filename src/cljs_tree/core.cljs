@@ -1068,7 +1068,8 @@
   (let [ele-id (event->target-id evt)
         kwv (tree-id->tree-path-nav-vector ele-id)
         ekwv (conj kwv :expanded)]
-    (swap! root-ratom update-in ekwv not)))
+    (swap! root-ratom update-in ekwv not)
+    (focus-and-scroll-editor-for-id ele-id)))
 
 (defn indent-div [indent-id]
   (let [id-v (tree-id->nav-index-vector indent-id)
