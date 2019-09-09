@@ -5,7 +5,6 @@
 
 (ns cljs-tree.core
   (:require
-    [cljs.pprint :as ppr]
     [cljs-tree.demo-hierarchy :as h]
     [cljs-tree.undo-redo :as ur]
     [cljs-tree.vector-utils :refer [delete-at remove-first remove-last
@@ -52,14 +51,6 @@
 (defn get-element-by-id
   [id]
   (.getElementById js/document id))
-
-(defn get-value-by-id
-  [id]
-  (.-value (get-element-by-id id)))
-
-(defn set-value-by-id!
-  [id value]
-  (set! (.-value (get-element-by-id id)) value))
 
 (defn event->target-element
   [evt]
@@ -137,7 +128,7 @@
    :modifiers {:ctrl  (.-ctrlKey evt)
                :shift (.-shiftKey evt)
                :alt   (.-altKey evt)
-               :cmd   (or (.-metaKey evt) (.-ctrlKey evt))}})
+               :cmd   (.-metaKey evt)}})
 
 ;;------------------------------------------------------------------------------
 ;; Just a few miscellaneous utility functions.
@@ -835,17 +826,76 @@
     (r/after-render
       (fn [] (highlight-and-scroll-editor-for-id span-id 0 num-chars)))))
 
+(defn delete-branch
+  "Delete the branch specified, including all of its children."
+  [{:keys [root-ratom evt span-id]}]
+  (.preventDefault evt)
+  (prune-topic! root-ratom span-id))
+
+(defn split-headline
+  "Split the headline at the caret location. Text to the left of the caret
+  will remain at the existing location. Text to the right of the caret (and
+  any children) will appear as a new sibling branch below the existing
+  headline."
+  ;; I can make different arguments for whether the caret should be left at
+  ;; the end of the top headline or moved to the beginning of the new branch.
+  ;; Went with top headline for now.
+  [{:keys [root-ratom evt span-id]}]
+  (.preventDefault evt)
+  (when-let [ele (get-element-by-id (change-tree-id-type span-id "editor"))]
+    (let [sel-end (.-selectionEnd ele)
+          existing-topic (get-topic root-ratom span-id)
+          topic-text (:topic existing-topic)
+          text-before (s/trimr (s/join (take sel-end topic-text)))
+          cnt (count text-before)
+          text-after (s/triml (s/join (drop sel-end topic-text)))
+          headline-above {:topic text-before}
+          branch-below (assoc existing-topic :topic text-after)]
+      (prune-topic! root-ratom span-id)
+      (graft-topic! root-ratom span-id branch-below)
+      (graft-topic! root-ratom span-id headline-above)
+      (r/after-render
+        #(highlight-and-scroll-editor-for-id span-id cnt cnt)))))
+
+(defn join-headlines
+  "Joins the current headline with the sibling branch below it."
+  [{:keys [root-ratom evt span-id]}]
+  (.preventDefault evt)
+  (let [id-below (increment-leaf-index span-id)]
+    (when-let [branch-below (get-topic root-ratom id-below)]
+      (let [top-topic (get-topic root-ratom span-id)
+            cnt (count top-topic)
+            new-headline (str (:topic top-topic) " " (:topic branch-below))
+            with-new-headline (assoc top-topic :topic new-headline)
+            with-children (if (or (:children top-topic) (:children branch-below))
+                            (let [exp-state (or (:expanded top-topic) (:expanded branch-below))
+                                  startv (or (:children top-topic) [])
+                                  children (into startv (map identity (:children branch-below)))]
+                              (-> with-new-headline
+                                  (assoc :children children)
+                                  (assoc :expanded exp-state)))
+                            with-new-headline)]
+        (prune-topic! root-ratom span-id)
+        (prune-topic! root-ratom span-id)
+        (graft-topic! root-ratom span-id with-children)
+        (highlight-and-scroll-editor-for-id span-id cnt cnt)))))
+
 (defn toggle-headline-expansion
   "Toggle the expansion state of the current headline."
   [{:keys [root-ratom evt span-id]}]
   (.preventDefault evt)
   (toggle-node-expansion! root-ratom span-id))
 
+(defn- def-mods
+  "Return a map containing the default values for keyboard modifiers."
+  []
+  {:ctrl false :alt false :shift false :cmd false})
+
 (defn- merge-def-mods
   "Merge a map of modifiers (containing any modifiers which should be present)
   with a default map of false values for all modifiers."
   [m]
-  (merge {:ctrl false :alt false :shift false :cmd false} m))
+  (merge (def-mods) m))
 
 (defn handle-key-down
   "Handle key-down events and dispatch them to the appropriate handlers."
@@ -861,19 +911,28 @@
       (= km {:key "Enter" :modifiers (merge-def-mods {:shift true})})
       (insert-new-headline-above args)
 
-      (= km {:key "Enter" :modifiers (merge-def-mods {})})
+      (= km {:key "Enter" :modifiers (def-mods)})
       (insert-new-headline-below args)
 
-      (= km {:key "Delete" :modifiers (merge-def-mods {})})
+      (= km {:key "Enter" :modifiers (merge-def-mods {:ctrl true})})
+      (split-headline args)
+
+      (= km {:key "Enter" :modifiers (merge-def-mods {:ctrl true :shift true})})
+      (join-headlines args)
+
+      (= km {:key "k" :modifiers (merge-def-mods {:cmd true})})
+      (delete-branch args)
+
+      (= km {:key "Delete" :modifiers (def-mods)})
       (delete-one-character-forward args)
 
-      (= km {:key "Backspace" :modifiers (merge-def-mods {})})
+      (= km {:key "Backspace" :modifiers (def-mods)})
       (delete-one-character-backward args)
 
       (= km {:key "Tab" :modifiers (merge-def-mods {:shift true})})
       (outdent args)
 
-      (= km {:key "Tab" :modifiers (merge-def-mods {})})
+      (= km {:key "Tab" :modifiers (def-mods)})
       (indent args)
 
       (= km {:key "ArrowUp" :modifiers (merge-def-mods {:alt true :cmd true})})
@@ -882,10 +941,10 @@
       (= km {:key "ArrowDown" :modifiers (merge-def-mods {:alt true :cmd true})})
       (move-headline-down args)
 
-      (= km {:key "ArrowUp" :modifiers (merge-def-mods {})})
+      (= km {:key "ArrowUp" :modifiers (def-mods)})
       (move-focus-up-one-line args)
 
-      (= km {:key "ArrowDown" :modifiers (merge-def-mods {})})
+      (= km {:key "ArrowDown" :modifiers (def-mods)})
       (move-focus-down-one-line args)
 
       ;; alt-cmd-, despite what the :key looks like
@@ -1125,13 +1184,10 @@
         [:h1 "cljs-tree"]
         [:h3 "Some experiments with hierarchical data."]]
        [:div.tree-demo--container
-        ;[:p.tree-demo--description "Here is the result of "
-        ; [:code "tree->hiccup"] ":"]
         [:div.tree-control--container-div
          {:onKeyDown #(handle-keydown-for-tree-container % um)}
          [tree->hiccup root-ratom]]
         [add-buttons app-state-ratom]]])))
-;[add-move-remove-rocks-play-text-button app-state-ratom]]])))
 
 (defn start []
   (r/render-component [home h/test-hierarchy]
