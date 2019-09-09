@@ -57,7 +57,7 @@ and you should see an alert in the browser window.
 
 Any changes you make to functionality in the REPL or by making changes to a source file will be reflected (nearly) instantaneously in the browser window.
 
-Running this setup also will start running unit tests automatically. To check the status of integration tests, open a browser tab to 
+Running this setup also will start running unit tests automatically. To check the status of unit tests, open a browser tab to 
 `http://localhost:9500/figwheel-extra-main/auto-testing`.
 
 ## Build and Run a "Production" Version
@@ -126,13 +126,21 @@ You can always restore the outline to its original state by reloading the page.
 
     You cannot delete the last remaining headline. You can delete its contents but not the editing area of the headline.
 
+- **Split Headline**: You can split a line at the current caret position by pressing `Ctrl-Return`. The caret will remain where it was. If the headline had children, those will remain with the portion of the headline after the split.
+
+- **Join Headlines**: If the headline containing the editing caret has a sibling below it, pressing `Ctrl-Shft-Return` will join the two headlines. If either or both headlines had children, they will be combined and will remain in the same order as before the join.
+ 
+- **Deleting a Branch**: You can delete an entire brach of the tree, including children, by pressing `Cmd-k` when the top of the branch is focused for editing. As mentioned, this will delete the focused headline _and all of its children_.
+    
+    If you have experience with some other outliners, they may have a similar operation associated with the `Cmd-x` key. Other outliners may use this command to "Cut" the text, copying it to the clipboard. When you use `Cmd-k`, the branch is gone (unless you immediately press `Cmd-z` to undo the deletion.)
+
 - **Undo/Redo**: The keyboard shortcuts `Cmd-z` and `Shift-Cmd-z` can be used to undo and redo changes to the tree. These commands work just like similar commands in other editors. But they can also undo/redo things like the expansion state of a headline, deletion of subtrees, _etc_.
 
     However, the part of the program that handles undo/redo is a bit feeble in that it will not always show the location where the change was made -- it might be outside of the part of the tree control currently being viewed.
 
     Likewise, the program may show you states of the tree that you never created yourself. This is because some operations, like moving subtrees, are done in multiple steps that you typically don't see. When you undo some actions, you will see the intermediate steps as well.
 
-**A Note on Keyboard Shortcuts**: It's a bit of a problem coming up with appropriate keyboard commands in and SPA like this that does editing. Some of the choices have effects on the accessibility of the app. In this implmentation, the shortcuts described above are only active when a headline in the tree is focused -- so be a little careful. For example, pressing the `Tab` key when no headline is focused is likely to have different effects. Likewise, `Cmd-z` and `ShiftCmd-z` will not activate undo/redo in the tree unless it is focused and may cause some jarring effects in the browser.
+**A Note on Keyboard Shortcuts**: It's a bit of a problem coming up with appropriate keyboard commands in an SPA like this that does editing. Some of the choices have effects on the accessibility of the app. In this implmentation, the shortcuts described above are only active when a headline in the tree is focused -- so be a little careful. For example, pressing the `Tab` key when no headline is focused is likely to have different effects. Likewise, `Cmd-z` and `Shift-Cmd-z` will not activate undo/redo in the tree unless it is focused and may cause some jarring effects in the browser.
 
 ### Buttons
 
@@ -152,13 +160,16 @@ Some technical documentation, including a description of the tree data structure
 
 ## To Do
 
-- Allow deletion of entire headlines at once.
-- Add line split/join actions.
 - Maybe add a little formatting like bold and italic.
 - Branch rearrangement with drag and drop.
 - Change undo/redo machinery to use the Command pattern rather than the Memento pattern.
 - Pause undo/redo when executing composite actions.
 - Make undo/redo a little more "chunky" based on periods of inactivity.
+- Investigate any potential accessibility problems caused by the shortcut keys used.
+- It should not be possible for the tree to lose focus by executing a command (like using the mouse to expand/collapse, or undo'ing)
+- Clicking `Ctrl-x` on an editor with no selection should cut and delete the same branch. (But how to paste?)
+- Check on compatibility of shortcuts with Windows and Linux.
+- Convert the keyboard/command relationship into a sequence of maps, then search the sequence rather than using a large `cond`.
 
 ## License
 
