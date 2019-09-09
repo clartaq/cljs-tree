@@ -35,7 +35,11 @@ brew install leiningen
 
 ### Clone the Repository
 
-From you project directory, clone the repository.
+From you project directory, clone the repository. My repositories use [Mercurial](https://www.mercurial-scm.org) DVCS. The repository is on Helix TeamHub. This should do the job.
+
+```
+hg clone https://clartaq@helixteamhub.cloud/Regolith/projects/binom-stats/repositories/mercurial/cljs-tree
+```
 
 ## Development
 
@@ -89,7 +93,7 @@ This demo lets you manipulate a small sample outline. (Please forgive any odd co
 
 When the page is initially loaded, it will show an outline with some subtopics expanded while other are collapsed. There are buttons at the bottom that demonstrate some more complicated functionality
 
-When you focus a topic, you can edit it -- the editing area is just a plain old HTML `textarea`. Any keyboard shortcuts that your browser supports can be used, with the exceptions listed below. For example, there is no special "delete-line-contents" shortcut since `Cmd-Backspace` does that, at least on macOS.
+When you focus a topic, you can edit it -- the editing area is just a plain old HTML `textarea`. Any keyboard shortcuts that your browser supports can be used, with the exceptions listed below. For example, there is no special "delete-line-contents" shortcut since `Command-Backspace` does that, at least on macOS.
 
 You can always restore the outline to its original state by reloading the page.
 
@@ -103,7 +107,7 @@ You can always restore the outline to its original state by reloading the page.
     
     You can add a new headline _above_ the current headline by pressing `Shift-Return` instead.
 
-    In both cases, the inserted headline will be empty and show a blinking cursor ready to accept typing.
+    In both cases, the inserted headline will be empty and show a blinking caret ready to accept typing.
 
 - **Promoting/Outdenting and Demoting/Indenting Headlines**: An existing headline can be indented by pressing the `Tab` key while the headline is selected for editing. A headline can be outdented by holding down the `Shift` key then pressing the `Tab` key.
 
@@ -115,32 +119,32 @@ You can always restore the outline to its original state by reloading the page.
 
     You can only change the order of *siblings* this way, but when used with the Indent and Outdent functions, you can completely reorganize the outline.
 
-- **Expand/Collapse Branches**: If a headline has a chevron next to it, you can toggle expanding or collapsing the branch by clicking the chevron. The keyboard shortcut `opt-cmd-,` will also toggle the expansion state
-- **Deleting Characters**: Pressing the "Delete" key will delete characters in front of the caret (towards the end of the outline.) Pressing the "Backspace" key will delete characters behind the caret (towards the beginning of the outline.)
+- **Expand/Collapse Branches**: If a headline has a chevron next to it, you can toggle expanding or collapsing the branch by clicking the chevron. The keyboard shortcut `Option-Command-,` will also toggle the expansion state
+- **Deleting Characters**: Pressing the "Delete" key will delete characters in front of the caret (towards the end of the outline.) Pressing the `Backspace` key will delete characters behind the caret (towards the beginning of the outline.)
 
     Completely deleting a headline will also delete any sub-headings it may have had.
 
-    The entire outline can be deleted by placing the editing caret before the first character in the top-most headline and repeatedly pressing the "Delete" key.
+    The entire outline can be deleted by placing the editing caret before the first character in the top-most headline and repeatedly pressing the `Delete` key.
 
     Likewise, placing the caret at the end of the last visible headline and repeatedly pressing the backspace key can erase the entire outline one character at a time.
 
     You cannot delete the last remaining headline. You can delete its contents but not the editing area of the headline.
 
-- **Split Headline**: You can split a line at the current caret position by pressing `Ctrl-Return`. The caret will remain where it was. If the headline had children, those will remain with the portion of the headline after the split.
+- **Split Headline**: You can split a line at the current caret position by pressing `Control-Return`. The caret will remain where it was. If the headline had sub-trees, those will remain with the portion of the headline after the split.
 
-- **Join Headlines**: If the headline containing the editing caret has a sibling below it, pressing `Ctrl-Shft-Return` will join the two headlines. If either or both headlines had children, they will be combined and will remain in the same order as before the join.
+- **Join Headlines**: If the headline containing the editing caret has a sibling below it, pressing `Control-Shift-Return` will join the two headlines. If either or both headlines had sub-trees, they will be combined and will remain in the same order as before the join.
  
-- **Deleting a Branch**: You can delete an entire brach of the tree, including children, by pressing `Cmd-k` when the top of the branch is focused for editing. As mentioned, this will delete the focused headline _and all of its children_.
+- **Deleting a Branch**: You can delete an entire brach of the tree, including sub-trees, by pressing `Command-k` when the top of the branch is focused for editing. As mentioned, this will delete the focused headline _and all of its sub-trees.
     
-    If you have experience with some other outliners, they may have a similar operation associated with the `Cmd-x` key. Other outliners may use this command to "Cut" the text, copying it to the clipboard. When you use `Cmd-k`, the branch is gone (unless you immediately press `Cmd-z` to undo the deletion.)
+    If you have experience with some other outliners, they may have a similar operation associated with the `Command-x` key. Other outliners may use this command to "Cut" the text, copying it to the clipboard. When you use `Command-k`, the branch is gone (unless you immediately press `Command-z` to undo the deletion.)
 
-- **Undo/Redo**: The keyboard shortcuts `Cmd-z` and `Shift-Cmd-z` can be used to undo and redo changes to the tree. These commands work just like similar commands in other editors. But they can also undo/redo things like the expansion state of a headline, deletion of subtrees, _etc_.
+- **Undo/Redo**: The keyboard shortcuts `Command-z` and `Shift-Command-z` can be used to undo and redo changes to the tree. These commands work just like similar commands in other editors. But they can also undo/redo things like the expansion state of a headline, deletion of subtrees, _etc_.
 
     However, the part of the program that handles undo/redo is a bit feeble in that it will not always show the location where the change was made -- it might be outside of the part of the tree control currently being viewed.
 
     Likewise, the program may show you states of the tree that you never created yourself. This is because some operations, like moving subtrees, are done in multiple steps that you typically don't see. When you undo some actions, you will see the intermediate steps as well.
 
-**A Note on Keyboard Shortcuts**: It's a bit of a problem coming up with appropriate keyboard commands in an SPA like this that does editing. Some of the choices have effects on the accessibility of the app. In this implmentation, the shortcuts described above are only active when a headline in the tree is focused -- so be a little careful. For example, pressing the `Tab` key when no headline is focused is likely to have different effects. Likewise, `Cmd-z` and `Shift-Cmd-z` will not activate undo/redo in the tree unless it is focused and may cause some jarring effects in the browser.
+**A Note on Keyboard Shortcuts**: It's a bit of a problem coming up with appropriate keyboard commands in an SPA like this that does editing. Some of the choices have effects on the accessibility of the app. In this implmentation, the shortcuts described above are only active when a headline in the tree is focused -- so be a little careful. For example, pressing the `Tab` key when no headline is focused is likely to have different effects. Likewise, `Command-z` and `Shift-Command-z` will not activate undo/redo in the tree unless it is focused and may cause some jarring effects in the browser.
 
 ### Buttons
 
@@ -150,7 +154,7 @@ At the bottom of the tree, there are four buttons labeled "Reset", "New", "Save"
 
 - **New**: Clicking the "New" button will delete the current contents of the tree and present the user with an empty tree to edit.
 
-- **Save**: Clicking the "Save" button will save the current state of the tree to [localStorage](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage). It will persist across browser sessions, but is limited in size.
+- **Save**: Clicking the "Save" button will save the current state of the tree to browser [localStorage](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage). It will persist across browser sessions, but is limited in size.
 
 - **Read**: Clicking the "Read" button will read any data stored in `localStorage` and replace the contents of the tree with the data.
 
@@ -166,8 +170,8 @@ Some technical documentation, including a description of the tree data structure
 - Pause undo/redo when executing composite actions.
 - Make undo/redo a little more "chunky" based on periods of inactivity.
 - Investigate any potential accessibility problems caused by the shortcut keys used.
-- It should not be possible for the tree to lose focus by executing a command (like using the mouse to expand/collapse, or undo'ing)
-- Clicking `Ctrl-x` on an editor with no selection should cut and delete the same branch. (But how to paste?)
+- It should not be possible for the tree to lose focus by executing a command (like undo'ing)
+- Clicking `Control-x` on an editor with no selection should cut and delete the same branch. (But how to paste?)
 - Check on compatibility of shortcuts with Windows and Linux.
 - Convert the keyboard/command relationship into a sequence of maps, then search the sequence rather than using a large `cond`.
 
