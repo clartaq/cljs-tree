@@ -49,11 +49,11 @@
                             (str "root" ts "0" ts "5" ts "32" ts "topic"))))))
 
 (deftest parent-id-test
-  (testing "The `parent-id` function."
-    (is (nil? (ct/parent-id (str "root" ts 0 ts "topic"))))
-    (is (nil? (ct/parent-id (str "root" ts 35 ts "topic"))))
-    (is (= (str "root" ts 35 ts "topic") (ct/parent-id (str "root" ts 35 ts 0 ts "topic"))))
-    (is (= (str "root" ts 35 ts "topic") (ct/parent-id (str "root" ts 35 ts 35 ts "topic"))))
+  (testing "The `tree-id->parent-id` function."
+    (is (nil? (ct/tree-id->parent-id (str "root" ts 0 ts "topic"))))
+    (is (nil? (ct/tree-id->parent-id (str "root" ts 35 ts "topic"))))
+    (is (= (str "root" ts 35 ts "topic") (ct/tree-id->parent-id (str "root" ts 35 ts 0 ts "topic"))))
+    (is (= (str "root" ts 35 ts "topic") (ct/tree-id->parent-id (str "root" ts 35 ts 35 ts "topic"))))
     ))
 
 (deftest nav-index-vector->tree-id-string-test
@@ -122,7 +122,7 @@
              (str "root" ts "2" ts "5" ts "33" ts "anything") "franjooly")))))
 
 (deftest insert-child-index-into-parent-id-test
-  (testing "The insert-child-index-into-parent-id' function"
+  (testing "The insert-child-index-into-tree-id->parent-id' function"
     ; Child index can be integer or string.
     (is (= (str "root" ts "2" ts "5" ts "33" ts "topic")
            (ct/insert-child-index-into-parent-id
