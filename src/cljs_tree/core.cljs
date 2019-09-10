@@ -225,7 +225,6 @@
 (defn parent-id
   "Return the id of the parent of this id or nil if the id is already a
   summit id. Returns nil if the tree-id is the top-most summit node."
-  ;; TODO: write some tests.
   [tree-id]
   (when-not (is-top-level? tree-id)
     (let [parts (tree-id->tree-id-parts tree-id)
