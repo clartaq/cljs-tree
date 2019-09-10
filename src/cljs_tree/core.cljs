@@ -217,16 +217,16 @@
       (remove-last)
       (remove-first)))
 
-(defn is-top-level?
+(defn is-summit-id?
   "Return true if tree-id represents a member of the top-level of topics."
   [tree-id]
   (= 1 (count (tree-id->nav-index-vector tree-id))))
 
-(defn parent-id
+(defn tree-id->parent-id
   "Return the id of the parent of this id or nil if the id is already a
   summit id. Returns nil if the tree-id is the top-most summit node."
   [tree-id]
-  (when-not (is-top-level? tree-id)
+  (when-not (is-summit-id? tree-id)
     (let [parts (tree-id->tree-id-parts tree-id)
           id-type (last parts)]
       (tree-id-parts->tree-id-string (conj (remove-last-two parts) id-type)))))
@@ -659,7 +659,7 @@
 (defn outdent-branch!
   "Outdent (promote) the given branch and return its new id."
   [root-ratom branch-id]
-  (when-not (is-top-level? branch-id)
+  (when-not (is-summit-id? branch-id)
     (let [parts (tree-id->nav-index-vector branch-id)
           less-parts (remove-last parts)
           promoted-id (increment-leaf-index (nav-index-vector->tree-id-string less-parts))
@@ -975,7 +975,7 @@
         (when (ur/can-undo? um)
           (let [active-ele-id (.-id (.-activeElement js/document))]
             (ur/undo! um)
-            (when-not (expanded? root-ratom (parent-id active-ele-id))
+            (when-not (expanded? root-ratom (tree-id->parent-id active-ele-id))
               (focus-and-scroll-editor-for-id (previous-visible-node root-ratom active-ele-id))))))
 
       (= km {:key "z" :modifiers (merge-def-mods {:cmd true :shift true})})
@@ -984,7 +984,7 @@
         (when (ur/can-redo? um)
           (let [active-ele-id (.-id (.-activeElement js/document))]
             (ur/redo! um)
-            (when-not (expanded? root-ratom (parent-id active-ele-id))
+            (when-not (expanded? root-ratom (tree-id->parent-id active-ele-id))
               (focus-and-scroll-editor-for-id (previous-visible-node root-ratom active-ele-id))))))
 
       :default nil)))
