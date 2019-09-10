@@ -170,7 +170,6 @@ Some technical documentation, including a description of the tree data structure
 - Pause undo/redo when executing composite actions.
 - Make undo/redo a little more "chunky" based on periods of inactivity.
 - Investigate any potential accessibility problems caused by the shortcut keys used.
-- It should not be possible for the tree to lose focus by executing a command (like undo'ing)
 - Clicking `Control-x` on an editor with no selection should cut and delete the same branch. (But how to paste?)
 - Check on compatibility of shortcuts with Windows and Linux.
 - Convert the keyboard/command relationship into a sequence of maps, then search the sequence rather than using a large `cond`.

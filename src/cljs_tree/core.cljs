@@ -69,9 +69,11 @@
   [ele-id]
   (.-selectionStart (get-element-by-id ele-id)))
 
-(defn is-ele-visible?
-  "Return non-nil if the element is visible. Note that, unlike many of the
-  functions in this section, this function expects a DOM element, not an id."
+(defn is-ele-in-visible-area?
+  "Return non-nil if the element is within the visible area of the
+  scroll port. May not be visible due to CSS settings or if its parent
+  is in a collapsed state. NOTE that, unlike many of the functions in
+  this section, this function expects a DOM element, not an id."
   [ele]
   (let [r (.getBoundingClientRect ele)
         doc-ele (.-documentElement js/document)
@@ -87,7 +89,7 @@
   of a DOM element, not an element in the data tree."
   [ele-id]
   (when-let [ele (get-element-by-id ele-id)]
-    (when-not (is-ele-visible? ele)
+    (when-not (is-ele-in-visible-area? ele)
       (.scrollIntoView ele))))
 
 (defn style-property-value
@@ -216,9 +218,19 @@
       (remove-first)))
 
 (defn is-top-level?
-  "Return true if topic-id represents a member of the top-level of topics."
-  [topic-id]
-  (= 1 (count (tree-id->nav-index-vector topic-id))))
+  "Return true if tree-id represents a member of the top-level of topics."
+  [tree-id]
+  (= 1 (count (tree-id->nav-index-vector tree-id))))
+
+(defn parent-id
+  "Return the id of the parent of this id or nil if the id is already a
+  summit id. Returns nil if the tree-id is the top-most summit node."
+  ;; TODO: write some tests.
+  [tree-id]
+  (when-not (is-top-level? tree-id)
+    (let [parts (tree-id->tree-id-parts tree-id)
+          id-type (last parts)]
+      (tree-id-parts->tree-id-string (conj (remove-last-two parts) id-type)))))
 
 (defn tree-id->sortable-nav-string
   "Convert the element id to a string containing the vector indices
@@ -855,7 +867,7 @@
       (graft-topic! root-ratom span-id branch-below)
       (graft-topic! root-ratom span-id headline-above)
       (r/after-render
-        #(highlight-and-scroll-editor-for-id span-id cnt cnt)))))
+        #(focus-and-scroll-editor-for-id span-id cnt)))))
 
 (defn join-headlines
   "Joins the current headline with the sibling branch below it."
@@ -878,7 +890,7 @@
         (prune-topic! root-ratom span-id)
         (prune-topic! root-ratom span-id)
         (graft-topic! root-ratom span-id with-children)
-        (highlight-and-scroll-editor-for-id span-id cnt cnt)))))
+        (focus-and-scroll-editor-for-id span-id cnt)))))
 
 (defn toggle-headline-expansion
   "Toggle the expansion state of the current headline."
@@ -947,26 +959,34 @@
       (= km {:key "ArrowDown" :modifiers (def-mods)})
       (move-focus-down-one-line args)
 
-      ;; alt-cmd-, despite what the :key looks like
+      ;; Option-Command-, despite what the :key looks like
       (= km {:key "≤" :modifiers (merge-def-mods {:cmd true :alt true})})
       (toggle-headline-expansion args)
 
       :default nil)))
 
 (defn handle-keydown-for-tree-container
-  "Handle undo/redo! for the tree container."
-  [evt um]
+  "Handle undo!/redo! for the tree container."
+  [evt root-ratom um]
   (let [km (key-evt->map evt)]
     (cond
       (= km {:key "z" :modifiers (merge-def-mods {:cmd true})})
       (do
         (.preventDefault evt)
-        (ur/undo! um))
+        (when (ur/can-undo? um)
+          (let [active-ele-id (.-id (.-activeElement js/document))]
+            (ur/undo! um)
+            (when-not (expanded? root-ratom (parent-id active-ele-id))
+              (focus-and-scroll-editor-for-id (previous-visible-node root-ratom active-ele-id))))))
 
       (= km {:key "z" :modifiers (merge-def-mods {:cmd true :shift true})})
       (do
         (.preventDefault evt)
-        (ur/redo! um))
+        (when (ur/can-redo? um)
+          (let [active-ele-id (.-id (.-activeElement js/document))]
+            (ur/redo! um)
+            (when-not (expanded? root-ratom (parent-id active-ele-id))
+              (focus-and-scroll-editor-for-id (previous-visible-node root-ratom active-ele-id))))))
 
       :default nil)))
 
@@ -1186,7 +1206,7 @@
         [:h3 "Some experiments with hierarchical data."]]
        [:div.tree-demo--container
         [:div.tree-control--container-div
-         {:onKeyDown #(handle-keydown-for-tree-container % um)}
+         {:onKeyDown #(handle-keydown-for-tree-container % root-ratom um)}
          [tree->hiccup root-ratom]]
         [add-buttons app-state-ratom]]])))
 

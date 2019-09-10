@@ -48,6 +48,14 @@
     (is (= ["0" "5" "32"] (ct/tree-id->nav-index-vector
                             (str "root" ts "0" ts "5" ts "32" ts "topic"))))))
 
+(deftest parent-id-test
+  (testing "The `parent-id` function."
+    (is (nil? (ct/parent-id (str "root" ts 0 ts "topic"))))
+    (is (nil? (ct/parent-id (str "root" ts 35 ts "topic"))))
+    (is (= (str "root" ts 35 ts "topic") (ct/parent-id (str "root" ts 35 ts 0 ts "topic"))))
+    (is (= (str "root" ts 35 ts "topic") (ct/parent-id (str "root" ts 35 ts 35 ts "topic"))))
+    ))
+
 (deftest nav-index-vector->tree-id-string-test
   (testing "The 'nav-index-vector->tree-id' function"
     (is (= (str "root" ts 0 ts "topic")
