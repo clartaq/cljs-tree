@@ -38,7 +38,7 @@ brew install leiningen
 From you project directory, clone the repository. My repositories use [Mercurial](https://www.mercurial-scm.org) DVCS. The repository is on Helix TeamHub. This should do the job.
 
 ```
-hg clone https://clartaq@helixteamhub.cloud/Regolith/projects/binom-stats/repositories/mercurial/cljs-tree
+hg clone https://hg.sr.ht/~clartaq/cljs-tree
 ```
 
 ## Development
