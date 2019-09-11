@@ -35,7 +35,7 @@ brew install leiningen
 
 ### Clone the Repository
 
-From you project directory, clone the repository. My repositories use [Mercurial](https://www.mercurial-scm.org) DVCS. The repository is on Helix TeamHub. This should do the job.
+From you project directory, clone the repository. My repositories use [Mercurial](https://www.mercurial-scm.org) DVCS. The repository is on Source Hut. This should do the job.
 
 ```
 hg clone https://hg.sr.ht/~clartaq/cljs-tree
