@@ -1,6 +1,6 @@
 (defproject cljs-tree "0.1.0-SNAPSHOT"
   :description "An experiment with an hierarchical data structure."
-  :url "https://hg.sr.ht/~clartaq/cljs-tree"
+  :url "https://github.com/clartaq/cljs-tree"
   :license {:name "Eclipse Public License"
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
 

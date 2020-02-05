@@ -35,10 +35,10 @@ brew install leiningen
 
 ### Clone the Repository
 
-From you project directory, clone the repository. My repositories use [Mercurial](https://www.mercurial-scm.org) DVCS. The repository is on Source Hut. This should do the job.
+From your project directory, clone the repository. This repository uses the git DVCS. The repository is on github. This should do the job.
 
 ```
-hg clone https://hg.sr.ht/~clartaq/cljs-tree
+git clone https://github.com/clartaq/cljs-tree.git
 ```
 
 ## Development
@@ -176,6 +176,6 @@ Some technical documentation, including a description of the tree data structure
 
 ## License
 
-Copyright © 2019 David D. Clark
+Copyright © 2019 - 2020 David D. Clark
 
 Distributed under the [Eclipse Public License](http://www.eclipse.org/legal/epl-v10.html) either version 1.0 or (at your option) any later version.
